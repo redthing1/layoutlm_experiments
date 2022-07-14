@@ -2,7 +2,7 @@ import typer
 import os
 from typing import Optional
 from collections import namedtuple
-# from transformers import T5TokenizerFast, AutoModelForSeq2SeqLM
+
 from transformers import RobertaTokenizer, AutoTokenizer, T5ForConditionalGeneration
 
 Models = namedtuple('Models', 'tokenizer model')
