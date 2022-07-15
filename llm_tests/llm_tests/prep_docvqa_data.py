@@ -96,6 +96,9 @@ def encode_dataset(examples, max_length=512):
                 words_example, answer.lower().split()
             )
             if match:
+                print(" Found match (standard):", match, 'from', word_idx_start, 'to', word_idx_end)
+                # print(" Verbose: words_example:", words_example, 'answer:', answer.lower().split())
+                # print(" Match is from ", words_example[word_idx_start], "to", words_example[word_idx_end])
                 break
         # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
         if not match:
@@ -104,6 +107,7 @@ def encode_dataset(examples, max_length=512):
                 for i in range(len(answer)):
                     if len(answer) == 1:
                         # this method won't work for single-character answers
+                        print(" Skipping single-character answer")
                         break
                     # drop the ith character from the answer
                     answer_i = answer[:i] + answer[i+1:]
@@ -113,6 +117,7 @@ def encode_dataset(examples, max_length=512):
                         words_example, answer_i.lower().split()
                     )
                     if match:
+                        print(' Found match (truncated):', match, 'from', word_idx_start, 'to', word_idx_end)
                         break
         # END OF EXPERIMENT
 
@@ -120,41 +125,64 @@ def encode_dataset(examples, max_length=512):
             sequence_ids = encoding.sequence_ids(batch_index)
             # Start token index of the current span in the text.
             token_start_index = 0
+            # skip <pad> tokens
             while sequence_ids[token_start_index] != 1:
                 token_start_index += 1
 
             # End token index of the current span in the text.
             token_end_index = len(encoding.input_ids[batch_index]) - 1
+            # skip <pad> tokens
             while sequence_ids[token_end_index] != 1:
                 token_end_index -= 1
 
             word_ids = encoding.word_ids(batch_index)[
                 token_start_index : token_end_index + 1
             ]
+            print('sliced word ids from', token_start_index, 'to', token_end_index + 1,
+                'out of', 0, len(encoding.word_ids(batch_index)))
+            # print('trying to match start and end tokens:', word_ids, word_idx_start, word_idx_end)
+            # decoded_words = tokenizer.decode(
+            #     encoding.input_ids[batch_index][token_start_index : token_end_index + 1]
+            # )
+            # print('decoded_words:', decoded_words)
+            # all_words = tokenizer.decode(encoding.input_ids[batch_index])
+            # print('all_words:', all_words)
+            found_start = False
+            found_end = False
             for id in word_ids:
                 if id == word_idx_start:
                     start_positions.append(token_start_index)
+                    print(' start:', token_start_index)
+                    found_start = True
                     break
                 else:
                     token_start_index += 1
+                    # print(' start id did not match:', id, word_idx_start)
 
             for id in word_ids[::-1]:
                 if id == word_idx_end:
                     end_positions.append(token_end_index)
+                    print(' end:', token_end_index)
+                    found_end = True
                     break
                 else:
                     token_end_index -= 1
-
-            print("Verifying start position and end position:")
-            print("True answer:", answer)
-            start_position = start_positions[batch_index]
-            end_position = end_positions[batch_index]
-            reconstructed_answer = tokenizer.decode(
-                encoding.input_ids[batch_index][start_position : end_position + 1]
-            )
-            print("Reconstructed answer:", reconstructed_answer)
-            print("-----------")
-
+                    # print(' end id did not match:', id, word_idx_end)
+            
+            if found_end and found_start:
+                print("Verifying start position and end position:", batch_index, start_positions, end_positions)
+                print("True answer:", answer)
+                start_position = start_positions[batch_index]
+                end_position = end_positions[batch_index]
+                reconstructed_answer = tokenizer.decode(
+                    encoding.input_ids[batch_index][start_position : end_position + 1]
+                )
+                print("Reconstructed answer:", reconstructed_answer)
+                print("-----------")
+            else:
+                print('could not find start or end positions, probably it was truncated out')
+                start_positions.append(cls_index)
+                end_positions.append(cls_index)
         else:
             print("Answer not found in context")
             print("-----------")
@@ -190,6 +218,7 @@ def cli(
     df = pd.DataFrame(data["data"])
     print("data preview:", df.head())
 
+    # dataset = Dataset.from_pandas(df)
     dataset = Dataset.from_pandas(df)
     print(f"dataset size: {len(dataset)}")
 
