@@ -183,12 +183,15 @@ def cli(
     df = pd.DataFrame(data["data"])
     print("data preview:", df.head())
 
-    dataset = Dataset.from_pandas(df.iloc[:50])
+    dataset = Dataset.from_pandas(df)
     print(f"dataset size: {len(dataset)}")
 
     print("extracting ocr words and boxes")
     run_ocr_map_func = lambda x: get_ocr_words_and_boxes(ROOT_DIR, x)
-    dataset_with_ocr = dataset.map(run_ocr_map_func, batched=True, batch_size=4)
+    dataset_with_ocr = dataset.map(
+        run_ocr_map_func,
+        batched=True,
+        batch_size=4)
     print(dataset_with_ocr)
     print(f"dataset with ocr keys: {dataset_with_ocr.features}")
 
