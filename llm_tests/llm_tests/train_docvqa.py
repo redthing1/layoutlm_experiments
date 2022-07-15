@@ -37,15 +37,20 @@ def cli(
     train_data.set_format("torch")
     val_data.set_format("torch")
 
+    TRAIN_STEPS = 100000
+    BATCH_SIZE = 128
+    DEVICE_BATCH_SIZE = 16
     training_args = TrainingArguments(
         output_dir="./train_output",
         overwrite_output_dir=True,
-        num_train_epochs=1,
-        learning_rate=1e-5,
+        max_steps=TRAIN_STEPS,
+        learning_rate=3e-5,
+        warmup_steps=int(TRAIN_STEPS * 0.48),
         eval_steps=1000,
         save_steps=1000,
-        per_device_train_batch_size=2,
-        per_device_eval_batch_size=2,
+        per_device_train_batch_size=DEVICE_BATCH_SIZE,
+        per_device_eval_batch_size=DEVICE_BATCH_SIZE,
+        gradient_accumulation_steps=BATCH_SIZE // DEVICE_BATCH_SIZE,
     )
 
     # set up the trainer
