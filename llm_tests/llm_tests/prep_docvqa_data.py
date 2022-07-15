@@ -46,6 +46,8 @@ def get_ocr_words_and_boxes(root_dir, examples):
 
 # source: https://stackoverflow.com/a/12576755
 def subfinder(words_list, answer_list):
+    if len(answer_list) == 0:
+        assert False, "Answer list is empty"
     matches = []
     start_indices = []
     end_indices = []
@@ -97,10 +99,15 @@ def encode_dataset(examples, max_length=512):
                 break
         # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
         if not match:
+            print('Trying to recover from mismatch')
             for answer in answers[batch_index]:
                 for i in range(len(answer)):
+                    if len(answer) == 1:
+                        # this method won't work for single-character answers
+                        break
                     # drop the ith character from the answer
-                    answer_i = answer[:i] + answer[i + 1 :]
+                    answer_i = answer[:i] + answer[i+1:]
+                    # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
                     # check if we can find this one in the context
                     match, word_idx_start, word_idx_end = subfinder(
                         words_example, answer_i.lower().split()
@@ -191,7 +198,7 @@ def cli(
     dataset_with_ocr = dataset.map(
         run_ocr_map_func,
         batched=True,
-        batch_size=4)
+        batch_size=2)
     print(dataset_with_ocr)
     print(f"dataset with ocr keys: {dataset_with_ocr.features}")
 
