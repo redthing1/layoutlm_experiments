@@ -89,6 +89,11 @@ def cli(
     print('starting training')
     trainer.train()
 
+    # save out the model
+    print('saving trained model')
+    model.save_model(training_args.output_dir + '/' + run_name + '_train_finish')
+    print('model saved')
+
 def main():
     typer.run(cli)
 
