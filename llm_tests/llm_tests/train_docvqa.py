@@ -17,6 +17,13 @@ def cli(
     train_data_path: str,
     val_data_path: str,
     # device: Optional[str] = 'cpu',
+    batch: Optional[int] = 128,
+    device_batch: Optional[int] = 16,
+    lr: Optional[float] = 1e-5,
+    steps: Optional[int] = 100000,
+    warmup_ratio: Optional[float] = 0.1,
+    save_every: Optional[int] = 1000,
+    eval_every: Optional[int] = 1000,
 ):
     # load the model
     print(f"loading model: {model_path}")
@@ -37,21 +44,20 @@ def cli(
     train_data.set_format("torch")
     val_data.set_format("torch")
 
-    TRAIN_STEPS = 100000
-    BATCH_SIZE = 128
-    DEVICE_BATCH_SIZE = 16
     training_args = TrainingArguments(
         output_dir="./train_output",
         overwrite_output_dir=True,
-        max_steps=TRAIN_STEPS,
-        learning_rate=3e-5,
-        warmup_steps=int(TRAIN_STEPS * 0.48),
-        eval_steps=1000,
-        save_steps=1000,
-        per_device_train_batch_size=DEVICE_BATCH_SIZE,
-        per_device_eval_batch_size=DEVICE_BATCH_SIZE,
-        gradient_accumulation_steps=BATCH_SIZE // DEVICE_BATCH_SIZE,
+        max_steps=steps // batch,
+        learning_rate=lr,
+        # warmup_steps=int(steps * warmup_ratio),
+        warmup_ratio=warmup_ratio,
+        eval_steps=save_every,
+        save_steps=eval_every,
+        per_device_train_batch_size=device_batch,
+        per_device_eval_batch_size=device_batch,
+        gradient_accumulation_steps=batch // device_batch,
     )
+    print('training_args:', training_args)
 
     # set up the trainer
     trainer = Trainer(
