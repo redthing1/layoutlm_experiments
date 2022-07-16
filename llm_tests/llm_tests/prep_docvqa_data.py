@@ -152,7 +152,6 @@ def encode_dataset(examples, max_length=512):
             found_end = False
             for id in word_ids:
                 if id == word_idx_start:
-                    start_positions.append(token_start_index)
                     print(' start:', token_start_index)
                     found_start = True
                     break
@@ -162,7 +161,6 @@ def encode_dataset(examples, max_length=512):
 
             for id in word_ids[::-1]:
                 if id == word_idx_end:
-                    end_positions.append(token_end_index)
                     print(' end:', token_end_index)
                     found_end = True
                     break
@@ -171,6 +169,8 @@ def encode_dataset(examples, max_length=512):
                     # print(' end id did not match:', id, word_idx_end)
             
             if found_end and found_start:
+                start_positions.append(token_start_index)
+                end_positions.append(token_end_index)
                 print("Verifying start position and end position:", batch_index, start_positions, end_positions)
                 print("True answer:", answer)
                 start_position = start_positions[batch_index]
