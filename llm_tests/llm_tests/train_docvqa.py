@@ -19,12 +19,11 @@ def cli(
     run_name: str,
     # device: Optional[str] = 'cpu',
     batch: Optional[int] = 128,
-    device_batch: Optional[int] = 16,
+    inst_bach: Optional[int] = 16,
     lr: Optional[float] = 1e-5,
     steps: Optional[int] = 100000,
     warmup_ratio: Optional[float] = 0.1,
     save_every: Optional[int] = 1000,
-    eval_every: Optional[int] = 1000,
     log_wandb: Optional[bool] = False,
     project_id: Optional[str] = '"llm3-docvqa',
 ):
@@ -56,6 +55,8 @@ def cli(
             name=run_name
         )
 
+    n_devices = torch.cuda.device_count()
+
     training_args = TrainingArguments(
         output_dir="./train_output",
         overwrite_output_dir=True,
@@ -63,11 +64,11 @@ def cli(
         learning_rate=lr,
         # warmup_steps=int(steps * warmup_ratio),
         warmup_ratio=warmup_ratio,
-        eval_steps=save_every,
-        save_steps=eval_every,
-        per_device_train_batch_size=device_batch,
-        per_device_eval_batch_size=device_batch,
-        gradient_accumulation_steps=batch // device_batch,
+        save_steps=save_every,
+        evaluation_strategy = "epoch",
+        per_device_train_batch_size=inst_bach // n_devices,
+        per_device_eval_batch_size=inst_bach // n_devices,
+        gradient_accumulation_steps=batch // inst_bach,
         run_name=run_name,
         report_to = "wandb" if log_wandb else None,
     )
