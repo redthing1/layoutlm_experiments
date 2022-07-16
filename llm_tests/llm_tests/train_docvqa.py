@@ -16,6 +16,7 @@ def cli(
     model_path: str,
     train_data_path: str,
     val_data_path: str,
+    run_name: str,
     # device: Optional[str] = 'cpu',
     batch: Optional[int] = 128,
     device_batch: Optional[int] = 16,
@@ -24,6 +25,8 @@ def cli(
     warmup_ratio: Optional[float] = 0.1,
     save_every: Optional[int] = 1000,
     eval_every: Optional[int] = 1000,
+    log_wandb: Optional[bool] = False,
+    project_id: Optional[str] = '"llm3-docvqa',
 ):
     # load the model
     print(f"loading model: {model_path}")
@@ -44,6 +47,15 @@ def cli(
     train_data.set_format("torch")
     val_data.set_format("torch")
 
+    # wandb setup if enabled
+    if log_wandb:
+        import wandb
+        wandb.login()
+        wandb.init(
+            project=project_id,
+            name=run_name
+        )
+
     training_args = TrainingArguments(
         output_dir="./train_output",
         overwrite_output_dir=True,
@@ -56,6 +68,8 @@ def cli(
         per_device_train_batch_size=device_batch,
         per_device_eval_batch_size=device_batch,
         gradient_accumulation_steps=batch // device_batch,
+        run_name=run_name,
+        report_to = "wandb" if log_wandb else None,
     )
     print('training_args:', training_args)
 
@@ -71,8 +85,8 @@ def cli(
     )
 
     # train the model
+    print('starting training')
     trainer.train()
-
 
 def main():
     typer.run(cli)
