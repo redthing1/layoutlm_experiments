@@ -94,6 +94,11 @@ def cli(
     model.save_model(training_args.output_dir + '/' + run_name + '_train_finish')
     print('model saved')
 
+    # evaluate the model
+    print('evaluating model')
+    eval_results = trainer.evaluate()
+    print('evaluation results:', eval_results)
+
 def main():
     typer.run(cli)
 
