@@ -14,6 +14,8 @@
 ### 2. train on docvqa data
 
 ```sh
-CUDA_VISIBLE_DEVICES="0" poetry run train_docvqa 'microsoft/layoutlmv3-base' ~/Downloads/docvqa_proc_val ~/Downloads/docvqa_proc_val \
-    --steps 100000 --batch 128 --device-batch 8 --lr 3e-5 --warmup-ratio 0.48 --save-every 100 --eval-every 100
+CUDA_VISIBLE_DEVICES="0" poetry run train_docvqa 'microsoft/layoutlmv3-base' ~/Downloads/docvqa_proc_val ~/Downloads/docvqa_proc_val test1 \
+    --steps 100000 --batch 128 --device-batch 8 --lr 3e-5 \
+    --warmup-ratio 0.48 --save-every 100 --eval-every 100 \
+    --log-wandb --project-id "llm3-docvqa-base-1"
 ```
