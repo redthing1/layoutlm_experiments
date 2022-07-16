@@ -88,6 +88,7 @@ def encode_dataset(examples, max_length=512):
     # for every example in the batch:
     for batch_index in range(len(answers)):
         print("Batch index:", batch_index)
+        print(" Expected answer:", answers[batch_index])
         cls_index = encoding.input_ids[batch_index].index(tokenizer.cls_token_id)
         # try to find one of the answers in the context, return first match
         words_example = [word.lower() for word in words[batch_index]]
@@ -218,7 +219,6 @@ def cli(
     df = pd.DataFrame(data["data"])
     print("data preview:", df.head())
 
-    # dataset = Dataset.from_pandas(df)
     dataset = Dataset.from_pandas(df)
     print(f"dataset size: {len(dataset)}")
 
@@ -248,7 +248,7 @@ def cli(
     encoded_dataset = dataset_with_ocr.map(
         encode_dataset,
         batched=True,
-        batch_size=2,
+        batch_size=1,
         remove_columns=dataset_with_ocr.column_names,
         features=features,
     )
