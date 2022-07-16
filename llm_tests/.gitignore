@@ -1,3 +1,6 @@
+wandb
+train_output
+
 testprompt*
 
 requirements.txt
