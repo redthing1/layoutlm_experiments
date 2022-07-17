@@ -35,14 +35,17 @@ def normalize_bbox(bbox, width, height):
         int(1000 * (bbox[3] / height)),
     ]
 
-def fuzzy(s1,s2):
-    return (editdistance.eval(s1,s2)/((len(s1)+len(s2))/2)) < 0.2
+
+def fuzzy(s1, s2):
+    return (editdistance.eval(s1, s2) / ((len(s1) + len(s2)) / 2)) < 0.2
+
 
 def extract_ocr_words_boxes(root_dir, feature_extractor, use_dataset_ocr, examples):
     if use_dataset_ocr:
         return load_ocr_words_and_boxes(root_dir, feature_extractor, examples)
     else:
         return get_ocr_words_and_boxes(root_dir, feature_extractor, examples)
+
 
 def get_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     images = [
@@ -59,6 +62,7 @@ def get_ocr_words_and_boxes(root_dir, feature_extractor, examples):
 
     return examples
 
+
 def load_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     # load imgaes
     images = [
@@ -69,39 +73,44 @@ def load_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     # load ocrs
     ocrs = []
     for image_file in examples["image"]:
-        ocr_file = image_file.replace('documents/','ocr_results/').replace('.png','.json')
+        ocr_file = image_file.replace("documents/", "ocr_results/").replace(
+            ".png", ".json"
+        )
         with open(f"{root_dir}/{ocr_file}") as f:
             ocr = json.load(f)
         ocrs.append(ocr)
 
     encoded_inputs = feature_extractor(images)
     examples["pixel_values"] = encoded_inputs.pixel_values
-    
+
     # save ocr words and boxes
     batch_words = []
     batch_boxes = []
-    
+
     for i, ocr in enumerate(ocrs):
         img = images[i]
-        words=[]
-        boxes=[]
-        for doc in ocr['recognitionResults']:
-            for line in doc['lines']:
-                for w in line['words']:
-                    points=w['boundingBox']
-                    words.append(w['text'])
+        words = []
+        boxes = []
+        for doc in ocr["recognitionResults"]:
+            for line in doc["lines"]:
+                for w in line["words"]:
+                    points = w["boundingBox"]
+                    words.append(w["text"])
                     x1 = min(points[0::2])
                     x2 = max(points[0::2])
                     y1 = min(points[1::2])
                     y2 = max(points[1::2])
-                    boxes.append(normalize_bbox((x1,y1,x2,y2), img.width, img.height))
+                    boxes.append(
+                        normalize_bbox((x1, y1, x2, y2), img.width, img.height)
+                    )
             batch_words.append(words)
             batch_boxes.append(boxes)
 
-    examples['words'] = batch_words
-    examples['boxes'] = batch_boxes
+    examples["words"] = batch_words
+    examples["boxes"] = batch_boxes
 
     return examples
+
 
 # source: https://stackoverflow.com/a/12576755
 def subfinder(words_list, answer_list):
@@ -115,9 +124,8 @@ def subfinder(words_list, answer_list):
         #     words_list[i] == answer_list[0]
         #     and words_list[i : i + len(answer_list)] == answer_list
         # ):
-        if (
-            len(words_list[i:i+len(answer_list)]) == len(answer_list)
-            and all(fuzzy(words_list[i+j],answer_list[j]) for j in range(len(answer_list)))
+        if len(words_list[i : i + len(answer_list)]) == len(answer_list) and all(
+            fuzzy(words_list[i + j], answer_list[j]) for j in range(len(answer_list))
         ):
             matches.append(answer_list)
             start_indices.append(idx)
@@ -160,13 +168,20 @@ def encode_dataset(examples, max_length=512):
                 words_example, answer.lower().split()
             )
             if match:
-                print(" Found match (standard):", match, 'from', word_idx_start, 'to', word_idx_end)
+                print(
+                    " Found match (standard):",
+                    match,
+                    "from",
+                    word_idx_start,
+                    "to",
+                    word_idx_end,
+                )
                 # print(" Verbose: words_example:", words_example, 'answer:', answer.lower().split())
                 # print(" Match is from ", words_example[word_idx_start], "to", words_example[word_idx_end])
                 break
         # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
         if not match:
-            print('Trying to recover from mismatch')
+            print("Trying to recover from mismatch")
             for answer in answers[batch_index]:
                 for i in range(len(answer)):
                     if len(answer) == 1:
@@ -174,14 +189,21 @@ def encode_dataset(examples, max_length=512):
                         print(" Skipping single-character answer")
                         break
                     # drop the ith character from the answer
-                    answer_i = answer[:i] + answer[i+1:]
+                    answer_i = answer[:i] + answer[i + 1 :]
                     # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
                     # check if we can find this one in the context
                     match, word_idx_start, word_idx_end = subfinder(
                         words_example, answer_i.lower().split()
                     )
                     if match:
-                        print(' Found match (truncated):', match, 'from', word_idx_start, 'to', word_idx_end)
+                        print(
+                            " Found match (truncated):",
+                            match,
+                            "from",
+                            word_idx_start,
+                            "to",
+                            word_idx_end,
+                        )
                         break
         # END OF EXPERIMENT
 
@@ -202,8 +224,15 @@ def encode_dataset(examples, max_length=512):
             word_ids = encoding.word_ids(batch_index)[
                 token_start_index : token_end_index + 1
             ]
-            print('sliced word ids from', token_start_index, 'to', token_end_index + 1,
-                'out of', 0, len(encoding.word_ids(batch_index)))
+            print(
+                "sliced word ids from",
+                token_start_index,
+                "to",
+                token_end_index + 1,
+                "out of",
+                0,
+                len(encoding.word_ids(batch_index)),
+            )
             # print('trying to match start and end tokens:', word_ids, word_idx_start, word_idx_end)
             # decoded_words = tokenizer.decode(
             #     encoding.input_ids[batch_index][token_start_index : token_end_index + 1]
@@ -215,7 +244,7 @@ def encode_dataset(examples, max_length=512):
             found_end = False
             for id in word_ids:
                 if id == word_idx_start:
-                    print(' start:', token_start_index)
+                    print(" start:", token_start_index)
                     found_start = True
                     break
                 else:
@@ -224,17 +253,22 @@ def encode_dataset(examples, max_length=512):
 
             for id in word_ids[::-1]:
                 if id == word_idx_end:
-                    print(' end:', token_end_index)
+                    print(" end:", token_end_index)
                     found_end = True
                     break
                 else:
                     token_end_index -= 1
                     # print(' end id did not match:', id, word_idx_end)
-            
+
             if found_end and found_start:
                 start_positions.append(token_start_index)
                 end_positions.append(token_end_index)
-                print("Verifying start position and end position:", batch_index, start_positions, end_positions)
+                print(
+                    "Verifying start position and end position:",
+                    batch_index,
+                    start_positions,
+                    end_positions,
+                )
                 print("True answer:", answer)
                 start_position = start_positions[batch_index]
                 end_position = end_positions[batch_index]
@@ -244,7 +278,9 @@ def encode_dataset(examples, max_length=512):
                 print("Reconstructed answer:", reconstructed_answer)
                 print("-----------")
             else:
-                print('could not find start or end positions, probably it was truncated out')
+                print(
+                    "could not find start or end positions, probably it was truncated out"
+                )
                 start_positions.append(cls_index)
                 end_positions.append(cls_index)
         else:
@@ -295,11 +331,13 @@ def cli(
 
     print("extracting ocr words and boxes")
     feature_extractor = LayoutLMv3FeatureExtractor(apply_ocr=external_ocr)
-    run_ocr_map_func = lambda x: extract_ocr_words_boxes(root_dir=ROOT_DIR, feature_extractor=feature_extractor, use_dataset_ocr=not external_ocr, examples=x)
-    dataset_with_ocr = dataset.map(
-        run_ocr_map_func,
-        batched=True,
-        batch_size=1)
+    run_ocr_map_func = lambda x: extract_ocr_words_boxes(
+        root_dir=ROOT_DIR,
+        feature_extractor=feature_extractor,
+        use_dataset_ocr=not external_ocr,
+        examples=x,
+    )
+    dataset_with_ocr = dataset.map(run_ocr_map_func, batched=True, batch_size=1)
     print(dataset_with_ocr)
     print(f"dataset with ocr keys: {dataset_with_ocr.features}")
 
