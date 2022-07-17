@@ -18,6 +18,7 @@ def cli(
     val_data_path: str,
     run_name: str,
     # device: Optional[str] = 'cpu',
+    checkpoint: str = None,
     batch: Optional[int] = 128,
     inst_batch: Optional[int] = 16,
     lr: Optional[float] = 1e-5,
@@ -62,7 +63,7 @@ def cli(
         print(f"using {n_devices} gpu")
 
     training_args = TrainingArguments(
-        output_dir="./train_output",
+        output_dir=f"./train_output_{run_name}",
         overwrite_output_dir=True,
         max_steps=steps,
         learning_rate=lr,
