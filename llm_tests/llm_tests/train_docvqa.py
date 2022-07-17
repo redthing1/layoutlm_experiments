@@ -55,7 +55,11 @@ def cli(
             name=run_name
         )
 
-    n_devices = torch.cuda.device_count()
+    n_devices = 1
+    # check if gpu available
+    if torch.cuda.is_available():
+        n_devices = torch.cuda.device_count()
+        print(f"using {n_devices} gpu")
 
     training_args = TrainingArguments(
         output_dir="./train_output",
