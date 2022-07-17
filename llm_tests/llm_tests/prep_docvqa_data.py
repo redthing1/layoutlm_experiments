@@ -119,8 +119,11 @@ def load_dataset_ocr_words_and_boxes(root_dir, feature_extractor, examples):
 
     return examples
 
+MS_OCR_INSTANCE = None
 
 def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
+    global MS_OCR_INSTANCE
+
     # load imgaes
     images = [
         Image.open(f"{root_dir}/{image_file}").convert("RGB")
@@ -128,7 +131,9 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     ]
 
     # load ocrs
-    ms_ocr = MicrosoftReadOCR()
+    if MS_OCR_INSTANCE is None:
+        MS_OCR_INSTANCE = MicrosoftReadOCR()
+    ms_ocr = MS_OCR_INSTANCE
     ocrs = []
     for image_file in examples["image"]:
         # retry 3 times on exception

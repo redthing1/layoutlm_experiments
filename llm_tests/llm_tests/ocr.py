@@ -16,11 +16,18 @@ class MicrosoftReadOCR:
         endpoint = os.environ["ACCOUNT_ENDPOINT"]
         key = os.environ["ACCOUNT_KEY"]
         self.client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(key))
+        self.cache = dict()
 
     def simplify_bbox(self, raw_bbox):
         return [raw_bbox[0], raw_bbox[1], raw_bbox[4], raw_bbox[5]]
 
     def analyze_file(self, in_file):
+        # check if we have this file in the cache
+        # print('checking cache', self.cache)
+        if in_file in self.cache:
+            print(f' serving from cache: {in_file}')
+            return self.cache[in_file]
+
         # Open the image
         read_image = open(in_file, "rb")
 
@@ -56,6 +63,10 @@ class MicrosoftReadOCR:
                     for word in line.words:
                         results.append([word.text, self.simplify_bbox(word.bounding_box)])
         # print('ms read results:', results)
+
+        # cache the results
+        self.cache[in_file] = results
+        # print('saved in cache:', in_file, self.cache)
 
         return results
 
