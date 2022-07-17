@@ -131,10 +131,19 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     ms_ocr = MicrosoftReadOCR()
     ocrs = []
     for image_file in examples["image"]:
-        print('requesting ms read ocr for', image_file)
-        ocr_results = ms_ocr.analyze_file(f"{root_dir}/{image_file}")
-        ocrs.append(ocr_results)
-        print(' done')
+        # retry 3 times on exception
+        attempt = 0
+        while attempt < 3:
+            try:
+                print('requesting ms read ocr for', image_file)
+                ocr_results = ms_ocr.analyze_file(f"{root_dir}/{image_file}")
+                ocrs.append(ocr_results)
+                break
+            except Exception as e:
+                print(f'Error requesting ms read ocr for {image_file}: {e}')
+                attempt += 1
+                if attempt >= 3:
+                    raise e
 
     encoded_inputs = feature_extractor(images)
     examples["pixel_values"] = encoded_inputs.pixel_values
