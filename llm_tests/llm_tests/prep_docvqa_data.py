@@ -206,6 +206,17 @@ def better_subfinder(words_list, answer_query):
     smart_matches = []
     for start_pos in range(len(words_list)):
         for end_pos in range(start_pos, len(words_list)):
+            # use a length heuristic
+            n_pieces = end_pos - start_pos + 1
+
+            # check that the n pieces is close to the length of the answer list
+            if (
+                abs(n_pieces - len(answer_list)) > 5
+                or n_pieces < len(answer_list) / 2
+                or n_pieces > len(answer_list) * 2
+            ):
+                continue
+
             piece = words_list[start_pos:end_pos+1]
             # print('checking piece:', piece)
 
