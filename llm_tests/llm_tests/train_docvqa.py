@@ -64,7 +64,7 @@ def cli(
     training_args = TrainingArguments(
         output_dir="./train_output",
         overwrite_output_dir=True,
-        max_steps=steps,
+        max_steps=steps // batch,
         learning_rate=lr,
         # warmup_steps=int(steps * warmup_ratio),
         warmup_ratio=warmup_ratio,
