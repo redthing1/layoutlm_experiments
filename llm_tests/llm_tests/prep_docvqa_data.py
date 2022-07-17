@@ -415,6 +415,7 @@ def cli(
     ocr_engine: str = "dataset",
     tiny_subset: bool = False,
     resume_from_ocr: str = None,
+    procs: int = 1,
 ):
     global ROOT_DIR
     ROOT_DIR = dataset_dir
@@ -482,6 +483,7 @@ def cli(
         batch_size=1,
         remove_columns=dataset_with_ocr.column_names,
         features=features,
+        num_proc=procs,
     )
 
     print(f"encoded dataset: {encoded_dataset}")
