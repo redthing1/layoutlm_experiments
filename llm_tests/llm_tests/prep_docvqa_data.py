@@ -131,8 +131,10 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     ms_ocr = MicrosoftReadOCR()
     ocrs = []
     for image_file in examples["image"]:
+        print('requesting ms read ocr for', image_file)
         ocr_results = ms_ocr.analyze_file(f"{root_dir}/{image_file}")
         ocrs.append(ocr_results)
+        print(' done')
 
     encoded_inputs = feature_extractor(images)
     examples["pixel_values"] = encoded_inputs.pixel_values
@@ -142,7 +144,6 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     batch_boxes = []
 
     for i, ocr in enumerate(ocrs):
-        print('ms read result:', ocr)
         img = images[i]
         words = []
         boxes = []
@@ -150,7 +151,7 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
             word = item[0]
             box = item[1]
             
-            print('processing word: ', word, box)
+            # print('processing word: ', word, box)
             boxes.append(normalize_bbox(box, img.width, img.height))
             words.append(word)
 
