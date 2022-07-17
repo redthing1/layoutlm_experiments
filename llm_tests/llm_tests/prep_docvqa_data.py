@@ -443,6 +443,7 @@ def cli(
 
     if resume_from_ocr:
         # load ocr data
+        print("loading ocr data from", resume_from_ocr)
         dataset_with_ocr = load_from_disk(resume_from_ocr)
     else:
         print("extracting ocr words and boxes")
