@@ -9,7 +9,7 @@ from transformers import LayoutLMv3FeatureExtractor
 import json
 import pandas as pd
 from datasets import Dataset, Features, Sequence, Value, Array2D, Array3D
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from PIL import Image
 from sacremoses import MosesDetokenizer
 import editdistance
@@ -414,6 +414,7 @@ def cli(
     save_ocr: str = None,
     ocr_engine: str = "dataset",
     tiny_subset: bool = False,
+    resume_from_ocr: str = None,
 ):
     global ROOT_DIR
     ROOT_DIR = dataset_dir
@@ -440,21 +441,25 @@ def cli(
         dataset = Dataset.from_pandas(df.iloc[:8])
     print(f"dataset size: {len(dataset)}")
 
-    print("extracting ocr words and boxes")
-    feature_extractor = LayoutLMv3FeatureExtractor(apply_ocr=(ocr_engine == "tesseract"))
-    run_ocr_map_func = lambda x: extract_ocr_words_boxes(
-        root_dir=ROOT_DIR,
-        feature_extractor=feature_extractor,
-        ocr_engine=ocr_engine,
-        examples=x,
-    )
-    dataset_with_ocr = dataset.map(run_ocr_map_func, batched=True, batch_size=1)
-    print(dataset_with_ocr)
-    print(f"dataset with ocr keys: {dataset_with_ocr.features}")
+    if resume_from_ocr:
+        # load ocr data
+        dataset_with_ocr = load_from_disk(resume_from_ocr)
+    else:
+        print("extracting ocr words and boxes")
+        feature_extractor = LayoutLMv3FeatureExtractor(apply_ocr=(ocr_engine == "tesseract"))
+        run_ocr_map_func = lambda x: extract_ocr_words_boxes(
+            root_dir=ROOT_DIR,
+            feature_extractor=feature_extractor,
+            ocr_engine=ocr_engine,
+            examples=x,
+        )
+        dataset_with_ocr = dataset.map(run_ocr_map_func, batched=True, batch_size=1)
+        print(dataset_with_ocr)
+        print(f"dataset with ocr keys: {dataset_with_ocr.features}")
 
-    if save_ocr:
-        print("saving ocr data to", save_ocr)
-        dataset_with_ocr.save_to_disk(save_ocr)
+        if save_ocr:
+            print("saving ocr data to", save_ocr)
+            dataset_with_ocr.save_to_disk(save_ocr)
 
     # encode the dataset
     print("encoding dataset")
