@@ -13,6 +13,8 @@ from datasets import load_dataset
 from PIL import Image
 import editdistance
 
+from llm_tests.ocr import MicrosoftReadOCR
+
 Models = namedtuple("Models", "processor model")
 
 MODEL_ID = "microsoft/layoutlmv3-base"
@@ -40,11 +42,15 @@ def fuzzy(s1, s2):
     return (editdistance.eval(s1, s2) / ((len(s1) + len(s2)) / 2)) < 0.2
 
 
-def extract_ocr_words_boxes(root_dir, feature_extractor, use_dataset_ocr, examples):
-    if use_dataset_ocr:
-        return load_ocr_words_and_boxes(root_dir, feature_extractor, examples)
-    else:
+def extract_ocr_words_boxes(root_dir, feature_extractor, ocr_engine, examples):
+    if ocr_engine == 'dataset':
+        return load_dataset_ocr_words_and_boxes(root_dir, feature_extractor, examples)
+    elif ocr_engine == 'microsoft':
+        return get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples)
+    elif ocr_engine == 'tesseract':
         return get_ocr_words_and_boxes(root_dir, feature_extractor, examples)
+    else:
+        assert False, "Unknown ocr engine"
 
 
 def get_ocr_words_and_boxes(root_dir, feature_extractor, examples):
@@ -63,7 +69,7 @@ def get_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     return examples
 
 
-def load_ocr_words_and_boxes(root_dir, feature_extractor, examples):
+def load_dataset_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     # load imgaes
     images = [
         Image.open(f"{root_dir}/{image_file}").convert("RGB")
@@ -103,14 +109,56 @@ def load_ocr_words_and_boxes(root_dir, feature_extractor, examples):
                     boxes.append(
                         normalize_bbox((x1, y1, x2, y2), img.width, img.height)
                     )
-            batch_words.append(words)
-            batch_boxes.append(boxes)
+        batch_words.append(words)
+        batch_boxes.append(boxes)
 
     examples["words"] = batch_words
     examples["boxes"] = batch_boxes
 
     return examples
 
+
+def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
+    # load imgaes
+    images = [
+        Image.open(f"{root_dir}/{image_file}").convert("RGB")
+        for image_file in examples["image"]
+    ]
+
+    # load ocrs
+    ms_ocr = MicrosoftReadOCR()
+    ocrs = []
+    for image_file in examples["image"]:
+        ocr_results = ms_ocr.analyze_file(f"{root_dir}/{image_file}")
+        ocrs.append(ocr_results)
+
+    encoded_inputs = feature_extractor(images)
+    examples["pixel_values"] = encoded_inputs.pixel_values
+
+    # save ocr words and boxes
+    batch_words = []
+    batch_boxes = []
+
+    for i, ocr in enumerate(ocrs):
+        print('ms read result:', ocr)
+        img = images[i]
+        words = []
+        boxes = []
+        for item in ocr:
+            word = item[0]
+            box = item[1]
+            
+            print('processing word: ', word, box)
+            boxes.append(normalize_bbox(box, img.width, img.height))
+            words.append(word)
+
+        batch_words.append(words)
+        batch_boxes.append(boxes)
+
+    examples["words"] = batch_words
+    examples["boxes"] = batch_boxes
+
+    return examples
 
 # source: https://stackoverflow.com/a/12576755
 def subfinder(words_list, answer_list):
@@ -301,7 +349,7 @@ def cli(
     dataset_split: str,
     out_dir: str,
     save_ocr: str = None,
-    external_ocr: bool = False,
+    ocr_engine: str = "dataset",
     tiny_subset: bool = False,
 ):
     global ROOT_DIR
@@ -330,11 +378,11 @@ def cli(
     print(f"dataset size: {len(dataset)}")
 
     print("extracting ocr words and boxes")
-    feature_extractor = LayoutLMv3FeatureExtractor(apply_ocr=external_ocr)
+    feature_extractor = LayoutLMv3FeatureExtractor(apply_ocr=(ocr_engine == "tesseract"))
     run_ocr_map_func = lambda x: extract_ocr_words_boxes(
         root_dir=ROOT_DIR,
         feature_extractor=feature_extractor,
-        use_dataset_ocr=not external_ocr,
+        ocr_engine=ocr_engine,
         examples=x,
     )
     dataset_with_ocr = dataset.map(run_ocr_map_func, batched=True, batch_size=1)

@@ -2,6 +2,7 @@ wandb
 train_output
 
 testprompt*
+test*.py
 
 requirements.txt
 /models
