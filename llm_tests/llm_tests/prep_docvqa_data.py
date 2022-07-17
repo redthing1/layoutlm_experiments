@@ -178,7 +178,7 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     return examples
 
 
-def better_subfinder(words_list, answer_query):
+def better_subfinder(words_list, answer_query, try_hard=True):
     matches = []
     start_indices = []
     end_indices = []
@@ -201,6 +201,10 @@ def better_subfinder(words_list, answer_query):
 
     if matches:
         return matches[0], start_indices[0], end_indices[0]
+
+    if not try_hard:
+        # fail
+        return None, 0, 0
     
     # if that failed, use our stronger method to find missed matches
     smart_matches = []
@@ -300,7 +304,7 @@ def encode_dataset(examples, max_length=512):
                     # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
                     # check if we can find this one in the context
                     match, word_idx_start, word_idx_end = better_subfinder(
-                        words_example, answer_i.lower()
+                        words_example, answer_i.lower(), try_hard=False
                     )
                     if match:
                         print(
