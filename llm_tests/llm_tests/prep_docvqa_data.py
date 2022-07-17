@@ -201,6 +201,7 @@ def cli(
     dataset_dir: str,
     dataset_split: str,
     out_dir: str,
+    save_ocr: str = None
 ):
     global ROOT_DIR
     ROOT_DIR = dataset_dir
@@ -230,6 +231,10 @@ def cli(
         batch_size=2)
     print(dataset_with_ocr)
     print(f"dataset with ocr keys: {dataset_with_ocr.features}")
+
+    if save_ocr:
+        print("saving ocr data to", save_ocr)
+        dataset_with_ocr.save_to_disk(save_ocr)
 
     # encode the dataset
     print("encoding dataset")
