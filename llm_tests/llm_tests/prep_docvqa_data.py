@@ -11,11 +11,11 @@ import pandas as pd
 from datasets import Dataset, Features, Sequence, Value, Array2D, Array3D
 from datasets import load_dataset
 from PIL import Image
+import editdistance
 
 Models = namedtuple("Models", "processor model")
 
 MODEL_ID = "microsoft/layoutlmv3-base"
-feature_extractor = LayoutLMv3FeatureExtractor()
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 ROOT_DIR = None
 
@@ -27,8 +27,24 @@ def load_models_from_hf():
     return Models(processor, model)
 
 
-def get_ocr_words_and_boxes(root_dir, examples):
-    # get a batch of document images
+def normalize_bbox(bbox, width, height):
+    return [
+        int(1000 * (bbox[0] / width)),
+        int(1000 * (bbox[1] / height)),
+        int(1000 * (bbox[2] / width)),
+        int(1000 * (bbox[3] / height)),
+    ]
+
+def fuzzy(s1,s2):
+    return (editdistance.eval(s1,s2)/((len(s1)+len(s2))/2)) < 0.2
+
+def extract_ocr_words_boxes(root_dir, feature_extractor, use_dataset_ocr, examples):
+    if use_dataset_ocr:
+        return load_ocr_words_and_boxes(root_dir, feature_extractor, examples)
+    else:
+        return get_ocr_words_and_boxes(root_dir, feature_extractor, examples)
+
+def get_ocr_words_and_boxes(root_dir, feature_extractor, examples):
     images = [
         Image.open(f"{root_dir}/{image_file}").convert("RGB")
         for image_file in examples["image"]
@@ -43,6 +59,49 @@ def get_ocr_words_and_boxes(root_dir, examples):
 
     return examples
 
+def load_ocr_words_and_boxes(root_dir, feature_extractor, examples):
+    # load imgaes
+    images = [
+        Image.open(f"{root_dir}/{image_file}").convert("RGB")
+        for image_file in examples["image"]
+    ]
+
+    # load ocrs
+    ocrs = []
+    for image_file in examples["image"]:
+        ocr_file = image_file.replace('documents/','ocr_results/').replace('.png','.json')
+        with open(f"{root_dir}/{ocr_file}") as f:
+            ocr = json.load(f)
+        ocrs.append(ocr)
+
+    encoded_inputs = feature_extractor(images)
+    examples["pixel_values"] = encoded_inputs.pixel_values
+    
+    # save ocr words and boxes
+    batch_words = []
+    batch_boxes = []
+    
+    for i, ocr in enumerate(ocrs):
+        img = images[i]
+        words=[]
+        boxes=[]
+        for doc in ocr['recognitionResults']:
+            for line in doc['lines']:
+                for w in line['words']:
+                    points=w['boundingBox']
+                    words.append(w['text'])
+                    x1 = min(points[0::2])
+                    x2 = max(points[0::2])
+                    y1 = min(points[1::2])
+                    y2 = max(points[1::2])
+                    boxes.append(normalize_bbox((x1,y1,x2,y2), img.width, img.height))
+            batch_words.append(words)
+            batch_boxes.append(boxes)
+
+    examples['words'] = batch_words
+    examples['boxes'] = batch_boxes
+
+    return examples
 
 # source: https://stackoverflow.com/a/12576755
 def subfinder(words_list, answer_list):
@@ -52,9 +111,13 @@ def subfinder(words_list, answer_list):
     start_indices = []
     end_indices = []
     for idx, i in enumerate(range(len(words_list))):
+        # if (
+        #     words_list[i] == answer_list[0]
+        #     and words_list[i : i + len(answer_list)] == answer_list
+        # ):
         if (
-            words_list[i] == answer_list[0]
-            and words_list[i : i + len(answer_list)] == answer_list
+            len(words_list[i:i+len(answer_list)]) == len(answer_list)
+            and all(fuzzy(words_list[i+j],answer_list[j]) for j in range(len(answer_list)))
         ):
             matches.append(answer_list)
             start_indices.append(idx)
@@ -201,7 +264,9 @@ def cli(
     dataset_dir: str,
     dataset_split: str,
     out_dir: str,
-    save_ocr: str = None
+    save_ocr: str = None,
+    external_ocr: bool = False,
+    tiny_subset: bool = False,
 ):
     global ROOT_DIR
     ROOT_DIR = dataset_dir
@@ -220,15 +285,21 @@ def cli(
     df = pd.DataFrame(data["data"])
     print("data preview:", df.head())
 
-    dataset = Dataset.from_pandas(df)
+    dataset = None
+    if not tiny_subset:
+        dataset = Dataset.from_pandas(df)
+    else:
+        # dataset = Dataset.from_pandas(df.sample(n=8))
+        dataset = Dataset.from_pandas(df.iloc[:8])
     print(f"dataset size: {len(dataset)}")
 
     print("extracting ocr words and boxes")
-    run_ocr_map_func = lambda x: get_ocr_words_and_boxes(ROOT_DIR, x)
+    feature_extractor = LayoutLMv3FeatureExtractor(apply_ocr=external_ocr)
+    run_ocr_map_func = lambda x: extract_ocr_words_boxes(root_dir=ROOT_DIR, feature_extractor=feature_extractor, use_dataset_ocr=not external_ocr, examples=x)
     dataset_with_ocr = dataset.map(
         run_ocr_map_func,
         batched=True,
-        batch_size=2)
+        batch_size=1)
     print(dataset_with_ocr)
     print(f"dataset with ocr keys: {dataset_with_ocr.features}")
 
