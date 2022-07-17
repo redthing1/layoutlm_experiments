@@ -11,6 +11,7 @@ import pandas as pd
 from datasets import Dataset, Features, Sequence, Value, Array2D, Array3D
 from datasets import load_dataset
 from PIL import Image
+from sacremoses import MosesDetokenizer
 import editdistance
 
 from llm_tests.ocr import MicrosoftReadOCR
@@ -37,10 +38,11 @@ def normalize_bbox(bbox, width, height):
         int(1000 * (bbox[3] / height)),
     ]
 
+def fuzzy(s1, s2, threshold=0.2):
+    return (editdistance.eval(s1, s2) / ((len(s1) + len(s2)) / 2)) < threshold
 
-def fuzzy(s1, s2):
-    return (editdistance.eval(s1, s2) / ((len(s1) + len(s2)) / 2)) < 0.2
-
+def fuzzy_diff(s1, s2):
+    return (editdistance.eval(s1, s2) / ((len(s1) + len(s2)) / 2))
 
 def extract_ocr_words_boxes(root_dir, feature_extractor, ocr_engine, examples):
     if ocr_engine == 'dataset':
@@ -160,13 +162,16 @@ def get_msread_ocr_words_and_boxes(root_dir, feature_extractor, examples):
 
     return examples
 
-# source: https://stackoverflow.com/a/12576755
-def subfinder(words_list, answer_list):
-    if len(answer_list) == 0:
-        assert False, "Answer list is empty"
+
+def better_subfinder(words_list, answer_query):
     matches = []
     start_indices = []
     end_indices = []
+    
+    detokenizer = MosesDetokenizer(lang="en")
+    
+    # first try dumber, faster method, but this has false negatives
+    answer_list = answer_query.split()
     for idx, i in enumerate(range(len(words_list))):
         # if (
         #     words_list[i] == answer_list[0]
@@ -178,10 +183,37 @@ def subfinder(words_list, answer_list):
             matches.append(answer_list)
             start_indices.append(idx)
             end_indices.append(idx + len(answer_list) - 1)
+
     if matches:
         return matches[0], start_indices[0], end_indices[0]
-    else:
-        return None, 0, 0
+    
+    # if that failed, use our stronger method to find missed matches
+    smart_matches = []
+    for start_pos in range(len(words_list)):
+        for end_pos in range(start_pos, len(words_list)):
+            piece = words_list[start_pos:end_pos+1]
+            # print('checking piece:', piece)
+
+            # try to detokenize
+            detok_piece = detokenizer.detokenize(piece)
+            # print(' detok piece:', detok_piece)
+
+            # check if this piece is close to the answer
+            diff = fuzzy_diff(detok_piece, answer_query)
+            if diff < 0.2:
+                smart_matches.append((piece, diff, start_pos, end_pos))
+
+            if diff == 0:
+                break # perfect match, no need to continue
+    
+    if smart_matches:
+        # sort smart matches by diff
+        best_match = sorted(smart_matches, key=lambda x: x[1])[0]
+
+        return best_match[0], best_match[2], best_match[3]
+    
+    # fail
+    return None, 0, 0
 
 
 def encode_dataset(examples, max_length=512):
@@ -212,9 +244,10 @@ def encode_dataset(examples, max_length=512):
         # try to find one of the answers in the context, return first match
         words_example = [word.lower() for word in words[batch_index]]
         for answer in answers[batch_index]:
-            match, word_idx_start, word_idx_end = subfinder(
-                words_example, answer.lower().split()
+            match, word_idx_start, word_idx_end = better_subfinder(
+                words_example, answer.lower()
             )
+            print('searching for', answer, 'in', words_example)
             if match:
                 print(
                     " Found match (standard):",
@@ -240,8 +273,8 @@ def encode_dataset(examples, max_length=512):
                     answer_i = answer[:i] + answer[i + 1 :]
                     # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
                     # check if we can find this one in the context
-                    match, word_idx_start, word_idx_end = subfinder(
-                        words_example, answer_i.lower().split()
+                    match, word_idx_start, word_idx_end = better_subfinder(
+                        words_example, answer_i.lower()
                     )
                     if match:
                         print(
