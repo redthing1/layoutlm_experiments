@@ -6,7 +6,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-protobuf = "^3.20.0"
+protobuf = "3.20.1"
 torch = "^1.12.0"
 torchvision = "^0.13.0"
 transformers = "^4.20.1"
@@ -33,3 +33,4 @@ test1 = "llm_tests.test1:main"
 testqa = "llm_tests.testqa:main"
 prep_docvqa_data = "llm_tests.prep_docvqa_data:main"
 train_docvqa = "llm_tests.train_docvqa:main"
+inference = "llm_tests.inference:main"
