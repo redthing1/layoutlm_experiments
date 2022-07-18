@@ -417,6 +417,25 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "pdf2image"
+version = "1.16.0"
+description = "A wrapper around the pdftoppm and pdftocairo command line tools to convert PDF to a PIL Image list."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pillow = "*"
+
+[[package]]
+name = "pdfkit"
+version = "1.0.0"
+description = "Wkhtmltopdf python wrapper to convert html to pdf using the webkit rendering engine and qt"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pillow"
 version = "9.2.0"
 description = "Python Imaging Library (Fork)"
@@ -879,7 +898,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<4.0"
-content-hash = "6575226b86e6e45921c610b826f3af1affceaf7cb23120048ad44df0b2929841"
+content-hash = "20ded9aa6fe1e2a2aba4d9b22b3e1627b193adc4de09395d79f7eb91daf093b6"
 
 [metadata.files]
 aiohttp = [
@@ -1137,6 +1156,8 @@ packaging = [
 ]
 pandas = []
 pathtools = []
+pdf2image = []
+pdfkit = []
 pillow = []
 promise = []
 protobuf = [
