@@ -92,7 +92,13 @@ def cli(
 
     # train the model
     print('starting training')
-    trainer.train()
+
+    # if checkpoint is specified, load it
+    if checkpoint is not None:
+        print(f"loading checkpoint: {checkpoint}")
+        trainer.train(checkpoint)
+    else:
+        trainer.train()
 
     # save out the model
     print('saving trained model')
