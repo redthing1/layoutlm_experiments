@@ -304,7 +304,7 @@ def encode_dataset(examples, max_length=512):
                     # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
                     # check if we can find this one in the context
                     match, word_idx_start, word_idx_end = better_subfinder(
-                        words_example, answer_i.lower(), try_hard=False
+                        words_example, answer_i.lower(), try_hard=True
                     )
                     if match:
                         print(
@@ -396,6 +396,7 @@ def encode_dataset(examples, max_length=512):
                 end_positions.append(cls_index)
         else:
             print("Answer not found in context")
+            # assert False, "Answer not found in context"
             print("-----------")
             start_positions.append(cls_index)
             end_positions.append(cls_index)
@@ -439,7 +440,7 @@ def cli(
         dataset = Dataset.from_pandas(df)
     else:
         # dataset = Dataset.from_pandas(df.sample(n=8))
-        dataset = Dataset.from_pandas(df.iloc[:8])
+        dataset = Dataset.from_pandas(df.iloc[:64])
     print(f"dataset size: {len(dataset)}")
 
     if resume_from_ocr:
