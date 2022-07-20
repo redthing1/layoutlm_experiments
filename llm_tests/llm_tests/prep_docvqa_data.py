@@ -216,7 +216,7 @@ def better_subfinder(words_list, answer_query, try_hard=True):
             # check that the n pieces is close to the length of the answer list
             if (
                 abs(n_pieces - len(answer_list)) > 5
-                or n_pieces < len(answer_list) / 2
+                # or n_pieces < len(answer_list) / 2
                 or n_pieces > len(answer_list) * 2
             ):
                 continue
@@ -230,7 +230,12 @@ def better_subfinder(words_list, answer_query, try_hard=True):
 
             # check if this piece is close to the answer
             diff = fuzzy_diff(detok_piece, answer_query)
-            if diff < 0.2:
+            if (
+                detok_piece == answer_query
+                or diff < 0.2
+                or answer_query in detok_piece
+            ):
+                print(' approx match:', detok_piece)
                 smart_matches.append((piece, diff, start_pos, end_pos))
 
             if diff == 0:
@@ -396,7 +401,7 @@ def encode_dataset(examples, max_length=512):
                 end_positions.append(cls_index)
         else:
             print("Answer not found in context")
-            # assert False, "Answer not found in context"
+            assert False, "Answer not found in context"
             print("-----------")
             start_positions.append(cls_index)
             end_positions.append(cls_index)
@@ -440,7 +445,7 @@ def cli(
         dataset = Dataset.from_pandas(df)
     else:
         # dataset = Dataset.from_pandas(df.sample(n=8))
-        dataset = Dataset.from_pandas(df.iloc[:64])
+        dataset = Dataset.from_pandas(df.iloc[4470:4474])
     print(f"dataset size: {len(dataset)}")
 
     if resume_from_ocr:
