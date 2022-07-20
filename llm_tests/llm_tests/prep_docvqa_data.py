@@ -217,29 +217,38 @@ def better_subfinder(words_list, answer_query, try_hard=True):
             if (
                 abs(n_pieces - len(answer_list)) > 5
                 # or n_pieces < len(answer_list) / 2
-                or n_pieces > len(answer_list) * 2
+                or n_pieces > len(answer_list) * 2 + 2
             ):
+                # print(f'  discarding', n_pieces, len(answer_list))
+                # print(f'  discarding [{start_pos}:{end_pos}]', n_pieces, len(answer_list))
                 continue
 
             piece = words_list[start_pos:end_pos+1]
             # print('checking piece:', piece)
 
             # try to detokenize
-            detok_piece = detokenizer.detokenize(piece)
-            # print(' detok piece:', detok_piece)
+            detok_variants = []
+            detok_variants.append(''.join(piece))
+            detok_variants.append(' '.join(piece))
+            detok_variants.append(detokenizer.detokenize(piece))
 
-            # check if this piece is close to the answer
-            diff = fuzzy_diff(detok_piece, answer_query)
-            if (
-                detok_piece == answer_query
-                or diff < 0.2
-                or answer_query in detok_piece
-            ):
-                print(' approx match:', detok_piece)
-                smart_matches.append((piece, diff, start_pos, end_pos))
+            for detok_variant in detok_variants:
+                # check if this piece is close to the answer
+                diff = fuzzy_diff(detok_variant, answer_query)
 
-            if diff == 0:
-                break # perfect match, no need to continue
+                # print(' detok piece:', detok_piece, 'diff:', diff)
+                if (
+                    detok_variant == answer_query
+                    or diff <= 0.3
+                    or answer_query in detok_variant
+                ):
+                    print(f'  approx match: {detok_variant}, diff: {diff}')
+                    smart_matches.append(detok_variant)
+                    break
+                    smart_matches.append((piece, diff, start_pos, end_pos))
+
+                if diff == 0:
+                    break # perfect match, no need to continue
     
     if smart_matches:
         # sort smart matches by diff
@@ -445,7 +454,8 @@ def cli(
         dataset = Dataset.from_pandas(df)
     else:
         # dataset = Dataset.from_pandas(df.sample(n=8))
-        dataset = Dataset.from_pandas(df.iloc[4470:4474])
+        # dataset = Dataset.from_pandas(df.iloc[3590:3600])
+        dataset = Dataset.from_pandas(df[:8])
     print(f"dataset size: {len(dataset)}")
 
     if resume_from_ocr:
