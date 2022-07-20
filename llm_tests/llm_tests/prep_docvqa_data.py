@@ -228,27 +228,26 @@ def better_subfinder(words_list, answer_query, try_hard=True):
 
             # try to detokenize
             detok_variants = []
-            detok_variants.append(''.join(piece))
             detok_variants.append(' '.join(piece))
             detok_variants.append(detokenizer.detokenize(piece))
+            detok_variants.append(''.join(piece))
 
             for detok_variant in detok_variants:
                 # check if this piece is close to the answer
                 diff = fuzzy_diff(detok_variant, answer_query)
 
+                if diff == 0:
+                    break # perfect match, no need to continue
+
                 # print(' detok piece:', detok_piece, 'diff:', diff)
                 if (
                     detok_variant == answer_query
-                    or diff <= 0.3
+                    or diff <= 0.25
                     or answer_query in detok_variant
                 ):
                     print(f'  approx match: {detok_variant}, diff: {diff}')
-                    smart_matches.append(detok_variant)
-                    break
                     smart_matches.append((piece, diff, start_pos, end_pos))
-
-                if diff == 0:
-                    break # perfect match, no need to continue
+                    break
     
     if smart_matches:
         # sort smart matches by diff
@@ -410,7 +409,7 @@ def encode_dataset(examples, max_length=512):
                 end_positions.append(cls_index)
         else:
             print("Answer not found in context")
-            assert False, "Answer not found in context"
+            # assert False, "Answer not found in context"
             print("-----------")
             start_positions.append(cls_index)
             end_positions.append(cls_index)
@@ -507,6 +506,14 @@ def cli(
     # now save out the dataset
     print(f"saving dataset to {out_dir}")
     encoded_dataset.save_to_disk(out_dir)
+
+    # try collecting some stats
+    # count how many are missing (CLS/failure)
+
+    failed_matches = encoded_dataset.filter(lambda x: x["start_positions"] == 0 and x["end_positions"] == 0)
+    print('failed matches:', len(failed_matches))
+    reconst_ratio = (1 - len(failed_matches) / len(encoded_dataset))
+    print(f'successfully reconstructed: {reconst_ratio:.2%}')
 
     print("done")
 
