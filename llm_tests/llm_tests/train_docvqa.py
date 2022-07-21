@@ -1,16 +1,76 @@
 import typer
 import os
 from typing import Optional
+import collections
+import json
 
 import torch
-import json
 import pandas as pd
+import numpy as np
 
 from datasets import Dataset, Features, Sequence, Value, Array2D, Array3D
 from datasets import load_dataset, load_from_disk
 from transformers import AutoProcessor, AutoModelForQuestionAnswering, AutoTokenizer
 from transformers.data.data_collator import default_data_collator
-from transformers import TrainingArguments, Trainer
+from transformers import TrainingArguments, Trainer, EvalPrediction
+from datasets import load_metric
+
+from tqdm.auto import tqdm
+from llm_tests.qa_trainer import QuestionAnsweringTrainer
+
+def compute_metrics(start_logits, end_logits, features, examples):
+    metric = load_metric("squad")
+
+    example_to_features = collections.defaultdict(list)
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append(idx)
+
+    predicted_answers = []
+    for example in tqdm(examples):
+        example_id = example["id"]
+        context = example["context"]
+        answers = []
+
+        n_best = 20
+        max_answer_length = 512
+
+        # Loop through all features associated with that example
+        for feature_index in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    if offsets[start_index] is None or offsets[end_index] is None:
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+
+                    answer = {
+                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
+                        "logit_score": start_logit[start_index] + end_logit[end_index],
+                    }
+                    answers.append(answer)
+
+        # Select the answer with the best score
+        if len(answers) > 0:
+            best_answer = max(answers, key=lambda x: x["logit_score"])
+            predicted_answers.append(
+                {"id": example_id, "prediction_text": best_answer["text"]}
+            )
+        else:
+            predicted_answers.append({"id": example_id, "prediction_text": ""})
+
+    theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
+    return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
 def cli(
     model_path: str,
@@ -79,15 +139,21 @@ def cli(
     )
     print('training_args:', training_args)
 
+    metric = load_metric("squad")
+
+    def compute_metrics(p: EvalPrediction):
+        return metric.compute(predictions=p.predictions, references=p.label_ids)
+
     # set up the trainer
-    trainer = Trainer(
+    trainer = QuestionAnsweringTrainer(
         model=model,
         args=training_args,
         train_dataset=train_data,
         eval_dataset=val_data,
         tokenizer=processor,
         data_collator=default_data_collator,
-        # device=torch.device(device)
+        # device=torch.device(device),
+        compute_metrics=compute_metrics,
     )
 
     # train the model
@@ -96,14 +162,19 @@ def cli(
     # if checkpoint is specified, load it
     if checkpoint is not None:
         print(f"loading checkpoint: {checkpoint}")
-        trainer.train(checkpoint)
+        train_results = trainer.train(checkpoint)
     else:
-        trainer.train()
+        train_results = trainer.train()
 
     # save out the model
     print('saving trained model')
     model.save_model(training_args.output_dir + '/' + run_name + '_train_finish')
     print('model saved')
+
+    metrics = train_results.metrics
+    trainer.log_metrics("train", metrics)
+    trainer.save_metrics("train", metrics)
+    trainer.save_state()
 
     # evaluate the model
     print('evaluating model')
