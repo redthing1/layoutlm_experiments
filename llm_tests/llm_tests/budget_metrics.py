@@ -26,9 +26,11 @@ def cli(
     model_path: str,
     val_data_path: str,
 ):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # load the model
     print(f"loading model: {model_path}")
-    model = AutoModelForQuestionAnswering.from_pretrained(model_path)
+    model = AutoModelForQuestionAnswering.from_pretrained(model_path).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     # processor = AutoProcessor.from_pretrained(model_path, apply_ocr=False)
     print(f"model loaded: {model_path}")
@@ -38,8 +40,6 @@ def cli(
     print(f"val data loaded: {val_data_path}")
 
     val_data.set_format("torch")
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dataloader = torch.utils.data.DataLoader(val_data, batch_size=1)
 
