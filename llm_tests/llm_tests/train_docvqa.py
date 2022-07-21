@@ -142,7 +142,9 @@ def cli(
     metric = load_metric("squad")
 
     def compute_metrics(p: EvalPrediction):
-        return metric.compute(predictions=p.predictions, references=p.label_ids)
+        metrics_results = metric.compute(predictions=p.predictions, references=p.label_ids)
+        print(f"metrics_results: {metrics_results}")
+        return metrics_results
 
     # set up the trainer
     trainer = QuestionAnsweringTrainer(
