@@ -279,10 +279,11 @@ def encode_dataset(examples, max_length=512):
     start_positions = []
     end_positions = []
     answers = examples["answers"]
+
     # for every example in the batch:
-    for batch_index in range(len(answers)):
+    for batch_index in range(len(examples)):
         print("Batch index:", batch_index)
-        print(" Expected answer:", answers[batch_index])
+        print(" Expected answers:", answers[batch_index])
         cls_index = encoding.input_ids[batch_index].index(tokenizer.cls_token_id)
         # try to find one of the answers in the context, return first match
         words_example = [word.lower() for word in words[batch_index]]
