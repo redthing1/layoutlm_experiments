@@ -110,6 +110,10 @@ def cli(
         start_positions = batch["start_positions"].to(device)
         end_positions = batch["end_positions"].to(device)
 
+        print('n start:', start_positions.shape)
+
+        continue
+
         # with torch.no_grad():
         # outputs = model(
         #     input_ids=batch["input_ids"],

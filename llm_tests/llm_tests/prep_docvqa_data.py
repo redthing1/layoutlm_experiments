@@ -258,6 +258,64 @@ def better_subfinder(words_list, answer_query, try_hard=True):
     # fail
     return None, 0, 0
 
+def locate_encoded_answer(encoding, batch_index, word_idx_start, word_idx_end):
+    sequence_ids = encoding.sequence_ids(batch_index)
+    # Start token index of the current span in the text.
+    token_start_index = 0
+    # skip <pad> tokens
+    while sequence_ids[token_start_index] != 1:
+        token_start_index += 1
+
+    # End token index of the current span in the text.
+    token_end_index = len(encoding.input_ids[batch_index]) - 1
+    # skip <pad> tokens
+    while sequence_ids[token_end_index] != 1:
+        token_end_index -= 1
+
+    word_ids = encoding.word_ids(batch_index)[
+        token_start_index : token_end_index + 1
+    ]
+    print(
+        "sliced word ids from",
+        token_start_index,
+        "to",
+        token_end_index + 1,
+        "out of",
+        0,
+        len(encoding.word_ids(batch_index)),
+    )
+    # print('trying to match start and end tokens:', word_ids, word_idx_start, word_idx_end)
+    # decoded_words = tokenizer.decode(
+    #     encoding.input_ids[batch_index][token_start_index : token_end_index + 1]
+    # )
+    # print('decoded_words:', decoded_words)
+    # all_words = tokenizer.decode(encoding.input_ids[batch_index])
+    # print('all_words:', all_words)
+    found_start = False
+    found_end = False
+    for id in word_ids:
+        if id == word_idx_start:
+            print(" start:", token_start_index)
+            found_start = True
+            break
+        else:
+            token_start_index += 1
+            # print(' start id did not match:', id, word_idx_start)
+
+    for id in word_ids[::-1]:
+        if id == word_idx_end:
+            print(" end:", token_end_index)
+            found_end = True
+            break
+        else:
+            token_end_index -= 1
+            # print(' end id did not match:', id, word_idx_end)
+
+    if not found_start or not found_end:
+        return -1, -1
+    
+    # success
+    return token_start_index, token_end_index
 
 def encode_dataset(examples, max_length=512):
     # take a batch
@@ -280,18 +338,28 @@ def encode_dataset(examples, max_length=512):
     end_positions = []
     answers = examples["answers"]
 
+    # print('examples:', answers)
+
+    found_acceptable_answer = False
+
+    acceptable_answers = []
+    acceptable_answers_starts = []
+    acceptable_answers_ends = []
+
     # for every example in the batch:
-    for batch_index in range(len(examples)):
+    for batch_index in range(len(questions)):
+        print()
+        print("-----------")
         print("Batch index:", batch_index)
         print(" Expected answers:", answers[batch_index])
         cls_index = encoding.input_ids[batch_index].index(tokenizer.cls_token_id)
         # try to find one of the answers in the context, return first match
         words_example = [word.lower() for word in words[batch_index]]
         for answer in answers[batch_index]:
+            print('searching for', answer, 'in', words_example)
             match, word_idx_start, word_idx_end = better_subfinder(
                 words_example, answer.lower()
             )
-            print('searching for', answer, 'in', words_example)
             if match:
                 print(
                     " Found match (standard):",
@@ -303,16 +371,18 @@ def encode_dataset(examples, max_length=512):
                 )
                 # print(" Verbose: words_example:", words_example, 'answer:', answer.lower().split())
                 # print(" Match is from ", words_example[word_idx_start], "to", words_example[word_idx_end])
-                break
-        # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
-        if not match:
-            print("Trying to recover from mismatch")
-            for answer in answers[batch_index]:
+                # break
+
+                # no need to break!
+
+            # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
+            if not match:
+                print("Trying to recover from mismatch")
                 for i in range(len(answer)):
                     if len(answer) == 1:
                         # this method won't work for single-character answers
                         print(" Skipping single-character answer")
-                        break
+                        break # break inner loop
                     # drop the ith character from the answer
                     answer_i = answer[:i] + answer[i + 1 :]
                     # print('Trying: ', i, answer, answer_i, answer_i.lower().split())
@@ -329,95 +399,75 @@ def encode_dataset(examples, max_length=512):
                             "to",
                             word_idx_end,
                         )
-                        break
-        # END OF EXPERIMENT
+                        break # break inner loop
+            # END OF EXPERIMENT
 
-        if match:
-            sequence_ids = encoding.sequence_ids(batch_index)
-            # Start token index of the current span in the text.
-            token_start_index = 0
-            # skip <pad> tokens
-            while sequence_ids[token_start_index] != 1:
-                token_start_index += 1
-
-            # End token index of the current span in the text.
-            token_end_index = len(encoding.input_ids[batch_index]) - 1
-            # skip <pad> tokens
-            while sequence_ids[token_end_index] != 1:
-                token_end_index -= 1
-
-            word_ids = encoding.word_ids(batch_index)[
-                token_start_index : token_end_index + 1
-            ]
-            print(
-                "sliced word ids from",
-                token_start_index,
-                "to",
-                token_end_index + 1,
-                "out of",
-                0,
-                len(encoding.word_ids(batch_index)),
-            )
-            # print('trying to match start and end tokens:', word_ids, word_idx_start, word_idx_end)
-            # decoded_words = tokenizer.decode(
-            #     encoding.input_ids[batch_index][token_start_index : token_end_index + 1]
-            # )
-            # print('decoded_words:', decoded_words)
-            # all_words = tokenizer.decode(encoding.input_ids[batch_index])
-            # print('all_words:', all_words)
-            found_start = False
-            found_end = False
-            for id in word_ids:
-                if id == word_idx_start:
-                    print(" start:", token_start_index)
-                    found_start = True
-                    break
-                else:
-                    token_start_index += 1
-                    # print(' start id did not match:', id, word_idx_start)
-
-            for id in word_ids[::-1]:
-                if id == word_idx_end:
-                    print(" end:", token_end_index)
-                    found_end = True
-                    break
-                else:
-                    token_end_index -= 1
-                    # print(' end id did not match:', id, word_idx_end)
-
-            if found_end and found_start:
-                start_positions.append(token_start_index)
-                end_positions.append(token_end_index)
-                print(
-                    "Verifying start position and end position:",
-                    batch_index,
-                    start_positions,
-                    end_positions,
+            if match:
+                print(' trying to locate start and end tokens')
+                # we should have word start and end indices
+                token_start_index, token_end_index = locate_encoded_answer(
+                    encoding, batch_index,
+                    word_idx_start, word_idx_end
                 )
-                print("True answer:", answer)
-                start_position = start_positions[batch_index]
-                end_position = end_positions[batch_index]
-                reconstructed_answer = tokenizer.decode(
-                    encoding.input_ids[batch_index][start_position : end_position + 1]
-                )
-                print("Reconstructed answer:", reconstructed_answer)
-                print("-----------")
+
+                if token_start_index >= 0 and token_end_index >= 0:
+                    print(' found start and end tokens:', token_start_index, token_end_index)
+                    acceptable_answers.append(answer)
+                    acceptable_answers_starts.append(token_start_index)
+                    acceptable_answers_ends.append(token_end_index)
+
+                    # check if alredy found an acceptable answer
+                    if found_acceptable_answer:
+                        print("already found acceptable answer")
+                        continue # go to next answer
+
+                    found_acceptable_answer = True
+                    start_positions.append(token_start_index)
+                    end_positions.append(token_end_index)
+
+                    print(
+                        "Verifying start position and end position:",
+                        batch_index,
+                        start_positions,
+                        end_positions,
+                    )
+                    print("True answer:", answer)
+                    start_position = start_positions[batch_index]
+                    end_position = end_positions[batch_index]
+                    reconstructed_answer = tokenizer.decode(
+                        encoding.input_ids[batch_index][start_position : end_position + 1]
+                    )
+                    print("reconstructed answer:", reconstructed_answer.strip())
+                else:
+                    print(
+                        "could not find start or end positions, probably it was truncated out"
+                    )
+                    # start_positions.append(cls_index)
+                    # end_positions.append(cls_index)
             else:
-                print(
-                    "could not find start or end positions, probably it was truncated out"
-                )
-                start_positions.append(cls_index)
-                end_positions.append(cls_index)
-        else:
-            print("Answer not found in context")
-            # assert False, "Answer not found in context"
-            print("-----------")
-            start_positions.append(cls_index)
-            end_positions.append(cls_index)
+                print("could not find match")
+                # assert False, "Answer not found in context"
+                # start_positions.append(cls_index)
+                # end_positions.append(cls_index)
+
+    if not found_acceptable_answer:
+        print("answer not found in context")
+        # failure
+        start_positions.append(cls_index)
+        end_positions.append(cls_index)
+
+    # sanity checking
+    assert len(start_positions) == len(questions), f"start_positions and questions are different lengths: {len(start_positions)} vs {len(questions)}"
+    assert len(end_positions) == len(questions), f"end_positions and questions are different lengths: {len(end_positions)} vs {len(questions)}"
 
     encoding["pixel_values"] = examples["pixel_values"]
     encoding["start_positions"] = start_positions
     encoding["end_positions"] = end_positions
+
+    # # store acceptable answers
+    # encoding["acceptable_answers"] = acceptable_answers
+    # encoding["acceptable_answers_starts"] = acceptable_answers_starts
+    # encoding["acceptable_answers_ends"] = acceptable_answers_ends
 
     return encoding
 
@@ -454,8 +504,8 @@ def cli(
         dataset = Dataset.from_pandas(df)
     else:
         # dataset = Dataset.from_pandas(df.sample(n=8))
-        # dataset = Dataset.from_pandas(df.iloc[3590:3600])
-        dataset = Dataset.from_pandas(df[:8])
+        dataset = Dataset.from_pandas(df.iloc[8:10])
+        # dataset = Dataset.from_pandas(df[:8])
     print(f"dataset size: {len(dataset)}")
 
     if resume_from_ocr:
