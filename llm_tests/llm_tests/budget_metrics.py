@@ -142,7 +142,7 @@ def cli(
         print(f' predicted: {pred_results.answer}\t\t\t({pred_results.answer_locs})')
         print(f'  answer probs: start {pred_results.answer_probs[0]}, end {pred_results.answer_probs[1]}')
 
-        is_correct = fuzzy(pred_results.answer, pred_results.expected_answer)
+        is_correct = fuzzy(pred_results.answer, pred_results.expected_answer, 0.5)
         print('  correct? ', is_correct)
 
         print()
@@ -157,6 +157,7 @@ def cli(
     print(f"num items: {num_items}")
     print(f"num correct: {num_correct}")
     print(f"num incorrect: {num_incorrect}")
+    print(f"accuracy: {num_correct / num_items:.2%}")
 
 
 def main():
