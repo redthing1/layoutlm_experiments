@@ -45,8 +45,8 @@ def cli(
     dataloader = torch.utils.data.DataLoader(val_data, batch_size=1)
 
     def check_preds(outputs, labels):
-        answer_start_scores = outputs.start_logits
-        answer_end_scores = outputs.end_logits
+        answer_start_scores = outputs.start_logits.cpu().detach()
+        answer_end_scores = outputs.end_logits.cpu().detach()
 
         answer_start_probs = answer_start_scores.softmax(-1).squeeze()
         answer_end_probs = answer_end_scores.softmax(-1).squeeze()
@@ -66,8 +66,8 @@ def cli(
         # detokenize the answer
         answer = tokenizer.decode(input_id_list[answer_start:answer_end])
 
-        answer_start_prob_max = answer_start_probs[answer_start_ix].cpu().detach().numpy()
-        answer_end_prob_max = answer_end_probs[answer_end_ix].cpu().detach().numpy()
+        answer_start_prob_max = answer_start_probs[answer_start_ix].numpy()
+        answer_end_prob_max = answer_end_probs[answer_end_ix].numpy()
 
         # answer_probs = [answer_start_prob_max, answer_end_prob_max]
         answer_probs = answer_start_prob_max * answer_end_prob_max
