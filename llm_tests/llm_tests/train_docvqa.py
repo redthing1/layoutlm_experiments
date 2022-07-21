@@ -158,6 +158,18 @@ def cli(
         compute_metrics=compute_metrics,
     )
 
+    # log current metrics
+    print('current metrics')
+    trainer.log_metrics("train", metrics)
+
+    def log_eval():
+        # evaluate the model
+        print('evaluating model')
+        eval_results = trainer.evaluate()
+        print('evaluation results:', eval_results)
+    
+    log_eval()
+
     # train the model
     print('starting training')
 
@@ -178,10 +190,7 @@ def cli(
     trainer.save_metrics("train", metrics)
     trainer.save_state()
 
-    # evaluate the model
-    print('evaluating model')
-    eval_results = trainer.evaluate()
-    print('evaluation results:', eval_results)
+    log_eval()
 
 def main():
     typer.run(cli)
