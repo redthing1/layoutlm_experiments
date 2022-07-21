@@ -158,10 +158,6 @@ def cli(
         compute_metrics=compute_metrics,
     )
 
-    # log current metrics
-    print('current metrics')
-    trainer.log_metrics("train", metrics)
-
     def log_eval():
         # evaluate the model
         print('evaluating model')
