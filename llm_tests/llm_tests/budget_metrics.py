@@ -65,8 +65,8 @@ def cli(
         # detokenize the answer
         answer = tokenizer.decode(input_id_list[answer_start:answer_end])
 
-        answer_start_prob_max = answer_start_probs[answer_start_ix].detach().numpy()
-        answer_end_prob_max = answer_end_probs[answer_end_ix].detach().numpy()
+        answer_start_prob_max = answer_start_probs[answer_start_ix].cpu().detach().numpy()
+        answer_end_prob_max = answer_end_probs[answer_end_ix].cpu().detach().numpy()
 
         # answer_probs = [answer_start_prob_max, answer_end_prob_max]
         answer_probs = answer_start_prob_max * answer_end_prob_max
