@@ -177,9 +177,6 @@ def cli(
         
         for acceptable_answer in pred_results.acceptable_answers:
             acceptable_answer = acceptable_answer.strip().lower()
-            is_exact_match = acceptable_answer == pred_answer
-            if is_exact_match:
-                num_exact_correct += 1
             
             # check fuzzy matching
             nl = normalized_levenshtein(acceptable_answer, pred_answer)
@@ -200,6 +197,9 @@ def cli(
             print(' matched answer:', best_answer_match)
         else:
             print(' no match')
+
+        if abs(1 - best_similarity) < 0.001:
+            num_exact_correct += 1
         
         total_normalized_levenshtein += best_similarity
         
