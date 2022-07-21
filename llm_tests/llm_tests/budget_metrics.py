@@ -10,8 +10,7 @@ import importlib.util
 import torch
 import pandas as pd
 from PIL import Image
-import pdfkit
-import pdf2image
+import editdistance
 
 from transformers import (
     AutoProcessor,
@@ -21,6 +20,8 @@ from transformers import (
 )
 from datasets import load_dataset, load_from_disk
 
+def fuzzy(s1, s2, threshold=0.2):
+    return (editdistance.eval(s1, s2) / ((len(s1) + len(s2)) / 2)) < threshold
 
 def cli(
     model_path: str,
@@ -140,12 +141,14 @@ def cli(
         print(f'expected: {pred_results.expected_answer}\t\t\t({pred_results.expected_answer_locs})')
         print(f' predicted: {pred_results.answer}\t\t\t({pred_results.answer_locs})')
         print(f'  answer probs: start {pred_results.answer_probs[0]}, end {pred_results.answer_probs[1]}')
-        print('  correct? ', pred_results.answer == pred_results.expected_answer)
+
+        is_correct = fuzzy(pred_results.answer, pred_results.expected_answer)
+        print('  correct? ', is_correct)
 
         print()
 
         num_items += 1
-        if pred_results.answer == pred_results.expected_answer:
+        if is_correct:
             num_correct += 1
         else:
             num_incorrect += 1
