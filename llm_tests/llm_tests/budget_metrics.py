@@ -57,7 +57,7 @@ def cli(
         answer_start = answer_start_ix
         answer_end = answer_end_ix + 1
 
-        print("answer locs:", answer_start, answer_end)
+        # print("answer locs:", answer_start, answer_end)
 
         # get input ids as list
         input_id_list = input_ids.squeeze().tolist()
