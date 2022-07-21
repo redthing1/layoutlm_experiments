@@ -331,6 +331,7 @@ def encode_dataset(examples, max_length=512):
         max_length=max_length,
         padding="max_length",
         truncation=True,
+        return_token_type_ids=True,
     )
 
     # next, add start_positions and end_positions
@@ -513,8 +514,8 @@ def cli(
         dataset = Dataset.from_pandas(df)
     else:
         # dataset = Dataset.from_pandas(df.sample(n=8))
-        dataset = Dataset.from_pandas(df.iloc[8:10])
-        # dataset = Dataset.from_pandas(df[:8])
+        # dataset = Dataset.from_pandas(df.iloc[8:10])
+        dataset = Dataset.from_pandas(df[:8])
     
     print(f"dataset size: {len(dataset)}")
     print(f"dataset features: {dataset.features}")
@@ -547,7 +548,7 @@ def cli(
             "input_ids": Sequence(feature=Value(dtype="int64")),
             "bbox": Array2D(dtype="int64", shape=(512, 4)),
             "attention_mask": Sequence(Value(dtype="int64")),
-            # 'token_type_ids': Sequence(Value(dtype='int64')),
+            'token_type_ids': Sequence(Value(dtype='int64')),
             "pixel_values": Array3D(dtype="float32", shape=(3, 224, 224)),
             "start_positions": Value(dtype="int64"),
             "end_positions": Value(dtype="int64"),
@@ -577,6 +578,7 @@ def cli(
     # count how many are missing (CLS/failure)
 
     failed_matches = encoded_dataset.filter(lambda x: x["start_positions"] == 0 and x["end_positions"] == 0)
+    print()
     print('failed matches:', len(failed_matches))
     reconst_ratio = (1 - len(failed_matches) / len(encoded_dataset))
     print(f'successfully reconstructed: {reconst_ratio:.2%}')
