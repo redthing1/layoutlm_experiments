@@ -342,12 +342,16 @@ def encode_dataset(examples, max_length=512):
 
     found_acceptable_answer = False
 
-    acceptable_answers = []
-    acceptable_answers_starts = []
-    acceptable_answers_ends = []
+    batch_acceptable_answers = []
+    batch_acceptable_answers_starts = []
+    batch_acceptable_answers_ends = []
 
     # for every example in the batch:
     for batch_index in range(len(questions)):
+        acceptable_answers = []
+        acceptable_answers_starts = []
+        acceptable_answers_ends = []
+
         print()
         print("-----------")
         print("Batch index:", batch_index)
@@ -455,6 +459,11 @@ def encode_dataset(examples, max_length=512):
         # failure
         start_positions.append(cls_index)
         end_positions.append(cls_index)
+    
+    # add acceptable answers to the batch lists
+    batch_acceptable_answers.append(acceptable_answers)
+    batch_acceptable_answers_starts.append(acceptable_answers_starts)
+    batch_acceptable_answers_ends.append(acceptable_answers_ends)
 
     # sanity checking
     assert len(start_positions) == len(questions), f"start_positions and questions are different lengths: {len(start_positions)} vs {len(questions)}"
@@ -464,10 +473,10 @@ def encode_dataset(examples, max_length=512):
     encoding["start_positions"] = start_positions
     encoding["end_positions"] = end_positions
 
-    # # store acceptable answers
-    # encoding["acceptable_answers"] = acceptable_answers
-    # encoding["acceptable_answers_starts"] = acceptable_answers_starts
-    # encoding["acceptable_answers_ends"] = acceptable_answers_ends
+    # store acceptable answers
+    encoding["acceptable_answers"] = batch_acceptable_answers
+    encoding["acceptable_answers_starts"] = batch_acceptable_answers_starts
+    encoding["acceptable_answers_ends"] = batch_acceptable_answers_ends
 
     return encoding
 
@@ -506,7 +515,9 @@ def cli(
         # dataset = Dataset.from_pandas(df.sample(n=8))
         dataset = Dataset.from_pandas(df.iloc[8:10])
         # dataset = Dataset.from_pandas(df[:8])
+    
     print(f"dataset size: {len(dataset)}")
+    print(f"dataset features: {dataset.features}")
 
     if resume_from_ocr:
         # load ocr data
@@ -540,6 +551,10 @@ def cli(
             "pixel_values": Array3D(dtype="float32", shape=(3, 224, 224)),
             "start_positions": Value(dtype="int64"),
             "end_positions": Value(dtype="int64"),
+
+            "acceptable_answers": Sequence(feature=Value(dtype='string', id=None)),
+            "acceptable_answers_starts": Sequence(Value(dtype="int64")),
+            "acceptable_answers_ends": Sequence(Value(dtype="int64")),
         }
     )
 
