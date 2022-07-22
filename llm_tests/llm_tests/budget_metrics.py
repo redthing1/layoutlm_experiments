@@ -210,7 +210,7 @@ def cli(
     # summarize results
     print(f"num items: {num_items}")
     print(f"num exact match: {num_exact_correct}")
-    print(f"accuracy: {num_exact_correct / num_items:.2%}")
+    print(f"exact acc: {num_exact_correct / num_items:.2%}")
     anls = total_normalized_levenshtein / num_items
     print(f"anls: {anls:.3f}")
 
