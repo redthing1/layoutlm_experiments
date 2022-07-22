@@ -47,8 +47,10 @@ def cli(
     print("ocr data:", ocr_dataset)
     print("ocr features:", ocr_dataset.features)
 
+    print('running segify')
     segified_dataset = ocr_dataset.map(segify_boxes)
     # segified_dataset = ocr_dataset.map(lambda x: x)
+    print('segify done')
 
     if debug:
         # show visualizations
@@ -120,7 +122,11 @@ def cli(
 
     print("segified data:", segified_dataset)
     segified_dataset = segified_dataset.remove_columns("old_boxes")
+
+    print('saving segified data')
     segified_dataset.save_to_disk(segified_data_path)
+
+    print('done')
 
 
 def segify_boxes(row):
