@@ -29,8 +29,10 @@ def cli(
     model_path: str,
     val_data_path: str,
     tiny_subset: bool = False,
+    device: Optional[str] = None,
 ):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if not device:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # load the model
     print(f"loading model: {model_path}")
