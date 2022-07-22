@@ -21,8 +21,8 @@ from transformers import (
 )
 from datasets import load_dataset, load_from_disk
 
-COMBINE_ROW_DIFF = -1  # 20
-COMBINE_COL_DIFF = -1  # 120
+COMBINE_ROW_DIFF = -1  # 8
+COMBINE_COL_DIFF = -1  # 40
 
 
 def cli(
