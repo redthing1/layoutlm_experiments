@@ -21,24 +21,15 @@ from transformers import (
 )
 from datasets import load_dataset, load_from_disk
 
-COMBINE_ROW_DIFF = -1  # 8
-COMBINE_COL_DIFF = -1  # 40
-
-
 def cli(
     ocr_data_path: str,
     segified_data_path: str,
-    row_diff: int,
-    col_diff: int,
+    row_diff: int, # = 8,
+    col_diff: int, # = 40,
     tiny_subset: bool = False,
     root_dir: str = ".",
     debug: bool = False,
 ):
-    global COMBINE_ROW_DIFF, COMBINE_COL_DIFF
-
-    COMBINE_ROW_DIFF = row_diff
-    COMBINE_COL_DIFF = col_diff
-
     ocr_dataset = load_from_disk(ocr_data_path)
 
     if tiny_subset:
@@ -48,7 +39,8 @@ def cli(
     print("ocr features:", ocr_dataset.features)
 
     print('running segify')
-    segified_dataset = ocr_dataset.map(segify_boxes)
+    segify_boxes_fn = lambda x: segify_boxes_map(x, row_diff, col_diff, save_old_boxes=True)
+    segified_dataset = ocr_dataset.map(segify_boxes_fn)
     # segified_dataset = ocr_dataset.map(lambda x: x)
     print('segify done')
 
@@ -128,15 +120,9 @@ def cli(
 
     print('done')
 
-
-def segify_boxes(row):
-    global COMBINE_ROW_DIFF, COMBINE_COL_DIFF
-
-    words = row["words"]
-    boxes = row["boxes"]
-
-    print("words:", words)
-    print("boxes:", boxes)
+def segify_boxes(old_boxes, words, row_diff, col_diff):
+    # print("words:", words)
+    # print("boxes:", old_boxes)
 
     seg_boxes = []
 
@@ -144,7 +130,7 @@ def segify_boxes(row):
     last_row_box = None
     boxes_in_last_row = []
 
-    for i, (word, box) in enumerate(zip(words, boxes)):
+    for i, (word, box) in enumerate(zip(words, old_boxes)):
         # print('i', i, 'word', word, 'box', box)
 
         # box format is x, y, x, y
@@ -156,10 +142,10 @@ def segify_boxes(row):
         if last_row_box is None:
             last_row_box = box
             seg_boxes.append(box)
-            print(" ate box (first):", new_box)
+            # print(" ate box (first):", new_box)
             continue
 
-        # there is a last row box
+        # there is a last item box
         # check if we can combine this box with it
         # check if the X positions are close enough
         # box position numbers are normalized around 1000
@@ -182,16 +168,16 @@ def segify_boxes(row):
 
         # print(' gap diffs:', y_gap_diff, x_gap_diff)
 
-        if abs(y_gap_diff) < COMBINE_ROW_DIFF and abs(x_gap_diff) < COMBINE_COL_DIFF:
+        if abs(y_gap_diff) < row_diff and abs(x_gap_diff) < col_diff:
             # combine them, aka add this to that box's segment
 
             x_diff = box[0] - last_row_box[0]
             y_diff = box[1] - last_row_box[1]
 
-            print(" combining", box, "with", last_row_box, "diffs:", x_diff, y_diff)
+            # print(" combining", box, "with", last_row_box, "diffs:", x_diff, y_diff)
 
             # x diff should ALWAYS be small
-            # assert x_diff > -COMBINE_ROW_DIFF, f'x_diff: {x_diff} should always be small'
+            # assert x_diff > -row_diff, f'x_diff: {x_diff} should always be small'
 
             # adjust the box to account for the combined box
 
@@ -212,26 +198,36 @@ def segify_boxes(row):
             print(" ate box (merge):", new_box)
         else:
             # failed to combine
-            # flush old boxes in last row
+            # flush old boxes in last item
             for old_box_i in boxes_in_last_row:
                 # in case the box changed, set the box again
                 seg_boxes[old_box_i] = last_row_box.copy()
 
-            # set new last row box
+            # set new last item box
             last_row_box = box
             boxes_in_last_row = []
 
             seg_boxes.append(box)
-            print(" ate box (alone):", new_box)
+            # print(" ate box (alone):", new_box)
 
     # sanity checking
     assert len(seg_boxes) == len(words), f"boxes and words mismatch: len(seg_boxes) != len(words)"
 
-    # save new boxes
-    row["boxes"] = seg_boxes
-    row["old_boxes"] = boxes
+    return seg_boxes
 
-    return row
+def segify_boxes_map(item, row_diff, col_diff, save_old_boxes=False):
+    words = item["words"]
+    old_boxes = item["boxes"]
+
+    seg_boxes = segify_boxes(old_boxes=old_boxes, words=words, row_diff=row_diff, col_diff=col_diff)
+
+    # save new boxes
+    item["boxes"] = seg_boxes
+
+    if save_old_boxes:
+        item["old_boxes"] = old_boxes
+
+    return item
 
 
 def main():
