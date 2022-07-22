@@ -17,7 +17,7 @@ from transformers import TrainingArguments, Trainer, EvalPrediction
 from datasets import load_metric
 
 from tqdm.auto import tqdm
-from llm_tests.qa_trainer import QuestionAnsweringTrainer
+# from llm_tests.qa_trainer import QuestionAnsweringTrainer
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def cli(
     print('training_args:', training_args)
 
     # set up the trainer
-    trainer = QuestionAnsweringTrainer(
+    trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_data,
