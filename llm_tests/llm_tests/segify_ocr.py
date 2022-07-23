@@ -135,7 +135,7 @@ def segify_boxes(old_boxes, words, row_diff, col_diff):
 
         # box format is x, y, x, y
 
-        print(f"checking: {word} {box}")
+        # print(f"checking: {word} {box}")
 
         new_box = box  # untouched
 
@@ -195,7 +195,7 @@ def segify_boxes(old_boxes, words, row_diff, col_diff):
             boxes_in_last_row.append(i)
 
             seg_boxes.append(new_box)
-            print(" ate box (merge):", new_box)
+            # print(" ate box (merge):", new_box)
         else:
             # failed to combine
             # flush old boxes in last item

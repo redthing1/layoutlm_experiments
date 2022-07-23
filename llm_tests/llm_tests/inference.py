@@ -14,11 +14,14 @@ import pdf2image
 from transformers import AutoProcessor, AutoModelForQuestionAnswering, AutoTokenizer, LayoutLMv3FeatureExtractor
 from PIL import Image
 
+from llm_tests.segify_ocr import segify_boxes
+
 def cli(
     model_path: str,
     feature_extractor: str,
     in_file: str,
     processor_id: str = "microsoft/layoutlmv3-base",
+    segify: bool = True,
 ):
     _transformers_mod = __import__("transformers")
 
@@ -57,7 +60,16 @@ def cli(
     doc_encoding = feature_extractor(doc_img, return_tensors="pt")
     # pixel_values = doc_encoding["pixel_values"]
     words = doc_encoding["words"]
-    # boxes = doc_encoding["boxes"]
+    old_boxes = doc_encoding["boxes"]
+
+    if not segify:
+        # segify the boxes
+        print("segifying boxes")
+        doc_encoding["boxes"] = new_boxes = segify_boxes(old_boxes=old_boxes, words=words, row_diff=8, col_diff=40)
+
+    # # dump boxes
+    # print("old boxes:", old_boxes)
+    # print("new boxes:", doc_encoding["boxes"])
 
     print('detected words:', words)
 
