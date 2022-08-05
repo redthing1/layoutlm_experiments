@@ -520,6 +520,8 @@ class LayoutLMV3BartModel(PreTrainedModel):
         decoder_outputs = self.decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
+            # token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
+            token_type_ids=torch.zeros(decoder_input_ids.shape, dtype=torch.long, device=decoder_input_ids.device),
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=attention_mask,
             inputs_embeds=decoder_inputs_embeds,

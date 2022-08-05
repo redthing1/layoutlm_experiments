@@ -20,8 +20,10 @@ Models = namedtuple("Models", "processor model")
 
 MODEL_ID = "microsoft/layoutlmv3-base"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-DECODER_MODEL_ID = "facebook/bart-base"
+DECODER_MODEL_ID = "bert-base-cased"
 decoder_tokenizer = AutoTokenizer.from_pretrained(DECODER_MODEL_ID)
+# tokenizer.pad_token = tokenizer.eos_token
+# decoder_tokenizer.pad_token = decoder_tokenizer.eos_token
 ROOT_DIR = None
 
 
@@ -319,7 +321,7 @@ def locate_encoded_answer(encoding, batch_index, word_idx_start, word_idx_end):
     # success
     return token_start_index, token_end_index
 
-def encode_dataset(examples, max_length=512):
+def encode_dataset(examples, max_length=1024):
     # take a batch
     questions = examples["question"]
     words = examples["words"]
@@ -333,7 +335,7 @@ def encode_dataset(examples, max_length=512):
         max_length=max_length,
         padding="max_length",
         truncation=True,
-        return_token_type_ids=True,
+        # return_token_type_ids=True,
     )
 
     # next, add start_positions and end_positions
@@ -567,9 +569,8 @@ def cli(
     features = Features(
         {
             "input_ids": Sequence(feature=Value(dtype="int64")),
-            "bbox": Array2D(dtype="int64", shape=(512, 4)),
+            "bbox": Array2D(dtype="int64", shape=(1024, 4)),
             "attention_mask": Sequence(Value(dtype="int64")),
-            'token_type_ids': Sequence(Value(dtype='int64')),
             "pixel_values": Array3D(dtype="float32", shape=(3, 224, 224)),
             "labels": Sequence(feature=Value(dtype="int64")),
 

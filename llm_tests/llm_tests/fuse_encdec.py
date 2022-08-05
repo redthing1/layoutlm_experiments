@@ -45,6 +45,10 @@ def cli(
     print(f"fusing models {encoder_model_path} and {decoder_model_path}")
     seq2seq_model = EncoderDecoderModel.from_encoder_decoder_pretrained(encoder_model_path, decoder_model_path)
     
+    # decoder_tokenizer.pad_token = decoder_tokenizer.eos_token
+    # seq2seq_model.config.pad_token_id = decoder_tokenizer.pad_token_id
+    # seq2seq_model.config.pad_token_id = decoder_tokenizer.cls_token_id
+
     seq2seq_model.config.decoder_start_token_id = decoder_tokenizer.cls_token_id
     seq2seq_model.config.pad_token_id = decoder_tokenizer.pad_token_id
 

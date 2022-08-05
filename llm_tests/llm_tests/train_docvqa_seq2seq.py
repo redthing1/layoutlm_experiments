@@ -42,8 +42,7 @@ def cli(
     print(f"loading model: {model_path}")
     model = LayoutLMV3BartModel.from_pretrained(model_path)
     processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
-    # encoder_tokenizer = AutoTokenizer.from_pretrained("microsoft/layoutlmv3-base")
-    # decoder_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-base")
+    model.config.vocab_size = model.config.decoder.vocab_size
     print(f"model loaded: {model_path}")
 
     # load the data
