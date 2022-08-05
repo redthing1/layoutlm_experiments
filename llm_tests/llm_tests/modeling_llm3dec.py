@@ -162,7 +162,7 @@ def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start
 
 
 @add_start_docstrings(ENCODER_DECODER_START_DOCSTRING)
-class LayoutLMV3BartModel(PreTrainedModel):
+class LayoutLMv3Seq2SeqModel(PreTrainedModel):
     r"""
     [`EncoderDecoderModel`] is a generic model class that will be instantiated as a transformer architecture with one
     of the base model classes of the library as encoder and another one as decoder when created with the

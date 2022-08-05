@@ -69,19 +69,19 @@ def cli(
     doc_encoding = feature_extractor(doc_img, return_tensors="pt")
     # pixel_values = doc_encoding["pixel_values"]
     words = doc_encoding["words"]
-    old_boxes = doc_encoding["boxes"]
+    old_boxes = doc_encoding.boxes
 
     if not segify:
         # segify the boxes
         print("segifying boxes")
-        doc_encoding["boxes"] = new_boxes = segify_boxes(old_boxes=old_boxes, words=words, row_diff=8, col_diff=40)
+        doc_encoding.boxes = new_boxes = segify_boxes(old_boxes=old_boxes, words=words, row_diff=8, col_diff=40)
     
     elapsed_time = time.time() - start_time
     print(f"features extracted in {elapsed_time:.2f}s")
 
     # # dump boxes
     # print("old boxes:", old_boxes)
-    # print("new boxes:", doc_encoding["boxes"])
+    # print("new boxes:", doc_encoding.boxes)
 
     print('detected words:', words)
 
@@ -93,8 +93,20 @@ def cli(
         input_ids = encoding["input_ids"]
         print('detokenized input sequence:', tokenizer.decode(input_ids[0]))
 
+        # # bbox vs box
+        # print("bbox:", encoding.bbox)
+        # print("box:", doc_encoding.boxes)
+
+        # print('encoding:', encoding.keys())
         with torch.no_grad():
-            outputs = model(**encoding)
+            # outputs = model(**encoding)
+            outputs = model(
+                input_ids=encoding.input_ids,
+                attention_mask=encoding.attention_mask,
+                # bbox=doc_encoding.boxes,
+                bbox=encoding.bbox,
+                pixel_values=encoding.pixel_values,
+            )
         # print('model outputs:', outputs.keys())
 
         answer_start_scores = outputs.start_logits
