@@ -20,6 +20,7 @@ from typing import Optional, Tuple, Union
 import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss
+import torch.nn.functional as F
 
 from transformers.configuration_utils import PretrainedConfig
 from transformers.modeling_outputs import BaseModelOutput, Seq2SeqLMOutput
@@ -479,6 +480,8 @@ class LayoutLMv3Seq2SeqModel(PreTrainedModel):
         >>> # generation
         >>> generated = model.generate(input_ids)
         ```"""
+        # print(f'HACKED by Timothy! input_ids: {input_ids.shape}, attention_mask: {attention_mask.shape}, decoder_input_ids: {decoder_input_ids}, decoder_attention_mask: {decoder_attention_mask}, encoder_outputs: {encoder_outputs}, past_key_values: {past_key_values}, inputs_embeds: {inputs_embeds}, decoder_inputs_embeds: {decoder_inputs_embeds}, labels: {labels.shape}, use_cache: {use_cache}, output_attentions: {output_attentions}, output_hidden_states: {output_hidden_states}, return_dict: {return_dict}, bbox: {bbox.shape}, pixel_values: {pixel_values.shape}')
+        # print(f'more args: {kwargs}')
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         kwargs_encoder = {argument: value for argument, value in kwargs.items() if not argument.startswith("decoder_")}
@@ -517,13 +520,21 @@ class LayoutLMv3Seq2SeqModel(PreTrainedModel):
             )
 
         # Decode
+        # print(f'HACKED: encoder_attention_mask: {attention_mask.shape} {attention_mask}')
+        # print(f'HACKED: encoder_hidden_states: {encoder_hidden_states.shape} {encoder_hidden_states}')
+        # expand attention_mask from [4, 512] to [4, 709]
+        # get the 709 from encoder_hidden_states.shape[1]
+        # resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=0)
+        resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=1)
+        # print(f'HACKED: resized_encoder_attention_mask: {resized_encoder_attention_mask.shape} {resized_encoder_attention_mask.numpy().tolist()}')
+        
         decoder_outputs = self.decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
             # token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
             token_type_ids=torch.zeros(decoder_input_ids.shape, dtype=torch.long, device=decoder_input_ids.device),
             encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=attention_mask,
+            encoder_attention_mask=resized_encoder_attention_mask,
             inputs_embeds=decoder_inputs_embeds,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,

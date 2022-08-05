@@ -42,7 +42,6 @@ def cli(
     print(f"loading model: {model_path}")
     model = LayoutLMv3Seq2SeqModel.from_pretrained(model_path, ignore_mismatched_sizes=True)
     processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
-    model.config.vocab_size = model.config.decoder.vocab_size
     print(f"model loaded: {model_path}")
 
     # load the data

@@ -54,8 +54,7 @@ def cli(
     # seq2seq_model = LayoutLMv3Seq2SeqModel.from_encoder_decoder_pretrained(
     #     encoder_model_path, decoder_model_path
     # )
-    # model_decoder.config.max_position_embeddings = 1024
-    # model_encoder.config.max_position_embeddings = 1024
+    model_decoder.config.max_position_embeddings = model_encoder.config.max_position_embeddings
     # print(f'position embedding size: encoder: {model_encoder.config.max_position_embeddings}, decoder: {model_decoder.config.max_position_embeddings}')
     seq2seq_model = LayoutLMv3Seq2SeqModel(encoder=model_encoder, decoder=model_decoder)
 
@@ -68,6 +67,7 @@ def cli(
 
     seq2seq_model.config.decoder_start_token_id = decoder_tokenizer.cls_token_id
     seq2seq_model.config.pad_token_id = decoder_tokenizer.pad_token_id
+    seq2seq_model.config.vocab_size = decoder_tokenizer.vocab_size
 
     print("models fused")
     print(seq2seq_model)
@@ -118,6 +118,7 @@ def cli(
             attention_mask=encoder_encoding.attention_mask,
             bbox=encoder_encoding.bbox,
             pixel_values=encoder_encoding.pixel_values,
+            # output_attentions=True,
         )
         print("model output:", outputs)
 

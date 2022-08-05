@@ -321,7 +321,7 @@ def locate_encoded_answer(encoding, batch_index, word_idx_start, word_idx_end):
     # success
     return token_start_index, token_end_index
 
-def encode_dataset(examples, max_length=1024):
+def encode_dataset(examples, max_length=512):
     # take a batch
     questions = examples["question"]
     words = examples["words"]
@@ -347,7 +347,7 @@ def encode_dataset(examples, max_length=1024):
     def decoder_tokenize(data):
         return decoder_tokenizer(
             data,
-            max_length=1024,
+            max_length=max_length,
             padding="max_length",
             truncation=True,
         )
@@ -569,7 +569,7 @@ def cli(
     features = Features(
         {
             "input_ids": Sequence(feature=Value(dtype="int64")),
-            "bbox": Array2D(dtype="int64", shape=(1024, 4)),
+            "bbox": Array2D(dtype="int64", shape=(512, 4)),
             "attention_mask": Sequence(Value(dtype="int64")),
             "pixel_values": Array3D(dtype="float32", shape=(3, 224, 224)),
             "labels": Sequence(feature=Value(dtype="int64")),
