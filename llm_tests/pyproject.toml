@@ -34,7 +34,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 test1 = "llm_tests.test1:main"
 testqa = "llm_tests.testqa:main"
-prep_docvqa_data = "llm_tests.prep_docvqa_data:main"
+prep_docvqa_xqa = "llm_tests.prep_docvqa_xqa:main"
 prep_docvqa_seq2seq = "llm_tests.prep_docvqa_seq2seq:main"
 train_docvqa = "llm_tests.train_docvqa:main"
 train_docvqa_seq2seq = "llm_tests.train_docvqa_seq2seq:main"
