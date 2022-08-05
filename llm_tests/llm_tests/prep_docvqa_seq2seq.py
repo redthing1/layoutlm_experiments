@@ -20,8 +20,8 @@ Models = namedtuple("Models", "processor model")
 
 MODEL_ID = "microsoft/layoutlmv3-base"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-DECODER_MODEL_ID = "bert-base-cased"
-decoder_tokenizer = AutoTokenizer.from_pretrained(DECODER_MODEL_ID)
+# DECODER_MODEL_ID = "bert-base-cased"
+decoder_tokenizer = None
 # tokenizer.pad_token = tokenizer.eos_token
 # decoder_tokenizer.pad_token = decoder_tokenizer.eos_token
 ROOT_DIR = None
@@ -344,6 +344,7 @@ def encode_dataset(examples, max_length=512):
     answers = examples["answers"]
     decoder_labels = []
 
+    global decoder_tokenizer
     def decoder_tokenize(data):
         return decoder_tokenizer(
             data,
@@ -512,11 +513,18 @@ def cli(
     save_ocr: str = None,
     ocr_engine: str = "dataset",
     tiny_subset: bool = False,
+    decoder_model: str = None,
     resume_from_ocr: str = None,
     procs: int = 1,
 ):
     global ROOT_DIR
     ROOT_DIR = dataset_dir
+
+    if decoder_model is None:
+        assert False, "decoder_model is required"
+    
+    global decoder_tokenizer
+    decoder_tokenizer = AutoTokenizer.from_pretrained(decoder_model)
 
     # models = load_models_from_hf()
     # print('loaded models')
