@@ -68,3 +68,23 @@ run evals to compute metrics:
 ```sh
 poetry run budget_metrics train_output_try11_msread_segs/checkpoint-5000/ ~/Downloads/docvqa_proc_val_t7_msread/
 ```
+
+## alternate approach: LayoutLMv3Bart
+
+LayoutLMv3 encoder with BART decoder
+
+1. fuse together layoutlmv3 encoder with bart decoder
+
+```sh
+poetry run fuse_encdec 'microsoft/layoutlmv3-base' 'facebook/bart-base' --save-to ~/Downloads/PT_LLMv3_BART_FUSE_T1 --test-input ~/Downloads/dsconst/freebirds.jpg
+```
+
+2. preprocess for seq2seq
+```sh
+poetry run prep_docvqa_seq2seq ~/Downloads/docvqa/val val ~/Downloads/docvqa_proc_val_t6 --tiny-subset --ocr-engine dataset --decoder-model 'facebook/bart-base'
+```
+
+3. train for seq2seq
+```sh
+poetry run train_docvqa_seq2seq ~/Downloads/PT_LLMv3_BART_FUSE_T1/ ~/Downloads/docvqa_proc_train_t8_seq2seq_msread ~/Downloads/docvqa_proc_val_t8_seq2seq_msread try17_msr2s_s2s --steps 100000 --batch 32 --inst-batch 4 --lr 5e-6 --warmup-ratio 0.048 --save-every 1000
+```
