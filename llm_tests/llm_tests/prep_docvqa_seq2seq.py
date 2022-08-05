@@ -20,7 +20,7 @@ Models = namedtuple("Models", "processor model")
 
 MODEL_ID = "microsoft/layoutlmv3-base"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-DECODER_MODEL_ID = "danasone/bart-small-ru-en"
+DECODER_MODEL_ID = "facebook/bart-base"
 decoder_tokenizer = AutoTokenizer.from_pretrained(DECODER_MODEL_ID)
 ROOT_DIR = None
 
@@ -345,7 +345,7 @@ def encode_dataset(examples, max_length=512):
     def decoder_tokenize(data):
         return decoder_tokenizer(
             data,
-            max_length=512,
+            max_length=1024,
             padding="max_length",
             truncation=True,
         )

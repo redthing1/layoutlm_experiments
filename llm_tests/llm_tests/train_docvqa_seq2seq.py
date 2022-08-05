@@ -11,7 +11,7 @@ import numpy as np
 
 from datasets import Dataset, Features, Sequence, Value, Array2D, Array3D
 from datasets import load_dataset, load_from_disk
-from transformers import AutoProcessor, AutoModelForQuestionAnswering, AutoTokenizer
+from transformers import AutoProcessor, AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.data.data_collator import default_data_collator
 from transformers import TrainingArguments, Trainer, EvalPrediction
 from datasets import load_metric
@@ -39,8 +39,10 @@ def cli(
 ):
     # load the model
     print(f"loading model: {model_path}")
-    model = AutoModelForQuestionAnswering.from_pretrained(model_path)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
     processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
+    # encoder_tokenizer = AutoTokenizer.from_pretrained("microsoft/layoutlmv3-base")
+    # decoder_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-base")
     print(f"model loaded: {model_path}")
 
     # load the data

@@ -22,17 +22,18 @@ def cli(
     decoder_model_path: str,
     save_to: str = None,
 ):
-    # # load the encoder model
-    # print(f"loading encoder model: {encoder_model_path}")
+    # load the encoder model
+    print(f"loading encoder model: {encoder_model_path}")
     # model_encoder = LayoutLMv3Model.from_pretrained(encoder_model_path)
-    # processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
-    # tokenizer = AutoTokenizer.from_pretrained(encoder_model_path)
-    # print(f"encoder model loaded: {encoder_model_path}")
+    processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
+    encoder_tokenizer = AutoTokenizer.from_pretrained(encoder_model_path)
+    print(f"encoder model loaded: {encoder_model_path}")
 
-    # # load the decoder model
-    # print(f"loading decoder model: {decoder_model_path}")
+    # load the decoder model
+    print(f"loading decoder model: {decoder_model_path}")
     # model_decoder = AutoModelForCausalLM.from_pretrained(decoder_model_path)
-    # print(f"decoder model loaded: {decoder_model_path}")
+    decoder_tokenizer = AutoTokenizer.from_pretrained(decoder_model_path)
+    print(f"decoder model loaded: {decoder_model_path}")
 
     # # fuse the models
     # print("fusing models")
@@ -43,6 +44,10 @@ def cli(
     # fuse the models
     print(f"fusing models {encoder_model_path} and {decoder_model_path}")
     seq2seq_model = EncoderDecoderModel.from_encoder_decoder_pretrained(encoder_model_path, decoder_model_path)
+    
+    seq2seq_model.config.decoder_start_token_id = decoder_tokenizer.cls_token_id
+    seq2seq_model.config.pad_token_id = decoder_tokenizer.pad_token_id
+
     print("models fused")
     print(seq2seq_model)
 
