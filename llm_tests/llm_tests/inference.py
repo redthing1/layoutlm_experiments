@@ -1,6 +1,7 @@
 import typer
 import os
 import sys
+import time
 import tempfile
 from typing import Optional
 import importlib.util
@@ -26,13 +27,16 @@ def cli(
     _transformers_mod = __import__("transformers")
 
     # load the model
+    start_time = time.time()
     print(f"loading model: {model_path}")
     model = AutoModelForQuestionAnswering.from_pretrained(model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     processor = AutoProcessor.from_pretrained(processor_id, apply_ocr=True)
-    print(f"model loaded: {model_path}")
+    elapsed_time = time.time() - start_time
+    print(f"model loaded in {elapsed_time:.2f}s: {model_path}")
 
     # check if in file is url
+    start_time = time.time()
     if in_file.startswith("http"):
         # open and print webpage
         print(f"opening webpage: {in_file}")
@@ -54,9 +58,14 @@ def cli(
         # try loading image directly
         print(f"opening image: {in_file}")
         doc_img = Image.open(in_file).convert("RGB")
+    elapsed_time = time.time() - start_time
+    print(f"document loaded in {elapsed_time:.2f}s: {in_file}")
     
     _feature_extractor_cls = getattr(_transformers_mod, feature_extractor)
     feature_extractor = _feature_extractor_cls(apply_ocr=True)
+    
+    print(f"extracting features...")
+    start_time = time.time()
     doc_encoding = feature_extractor(doc_img, return_tensors="pt")
     # pixel_values = doc_encoding["pixel_values"]
     words = doc_encoding["words"]
@@ -66,6 +75,9 @@ def cli(
         # segify the boxes
         print("segifying boxes")
         doc_encoding["boxes"] = new_boxes = segify_boxes(old_boxes=old_boxes, words=words, row_diff=8, col_diff=40)
+    
+    elapsed_time = time.time() - start_time
+    print(f"features extracted in {elapsed_time:.2f}s")
 
     # # dump boxes
     # print("old boxes:", old_boxes)
@@ -79,7 +91,7 @@ def cli(
         # create model inputs
         encoding = processor(doc_img, user_question, truncation=True, return_tensors="pt")
         input_ids = encoding["input_ids"]
-        # print('detokenized input sequence:', tokenizer.decode(input_ids[0]))
+        print('detokenized input sequence:', tokenizer.decode(input_ids[0]))
 
         with torch.no_grad():
             outputs = model(**encoding)
