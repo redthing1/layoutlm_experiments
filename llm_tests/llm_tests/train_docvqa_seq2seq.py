@@ -15,6 +15,7 @@ from transformers import AutoProcessor, AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.data.data_collator import default_data_collator
 from transformers import TrainingArguments, Trainer, EvalPrediction
 from datasets import load_metric
+from llm_tests.modeling_llm3bart import LayoutLMV3BartModel
 
 from tqdm.auto import tqdm
 # from llm_tests.qa_trainer import QuestionAnsweringTrainer
@@ -39,7 +40,7 @@ def cli(
 ):
     # load the model
     print(f"loading model: {model_path}")
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+    model = LayoutLMV3BartModel.from_pretrained(model_path)
     processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
     # encoder_tokenizer = AutoTokenizer.from_pretrained("microsoft/layoutlmv3-base")
     # decoder_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-base")
