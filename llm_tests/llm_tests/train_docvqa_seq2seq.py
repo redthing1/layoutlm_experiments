@@ -14,6 +14,7 @@ from datasets import load_dataset, load_from_disk
 from transformers import AutoProcessor, AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.data.data_collator import default_data_collator
 from transformers import TrainingArguments, Trainer, EvalPrediction
+from transformers import AdamW, get_linear_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup
 from datasets import load_metric
 from llm_tests.modeling_llm3dec import LayoutLMv3Seq2SeqModel
 
@@ -78,7 +79,7 @@ def cli(
         max_steps=steps,
         learning_rate=lr,
         # warmup_steps=int(steps * warmup_ratio),
-        warmup_ratio=warmup_ratio,
+        # warmup_ratio=warmup_ratio,
         save_steps=save_every,
         evaluation_strategy = "epoch",
         per_device_train_batch_size=inst_batch // n_devices,
@@ -89,6 +90,19 @@ def cli(
     )
     print('training_args:', training_args)
 
+    optimizer = AdamW(model.parameters(), lr=lr)
+    # lr_scheduler = get_linear_schedule_with_warmup(
+    #     optimizer,
+    #     num_warmup_steps=int(steps * warmup_ratio),
+    #     num_training_steps=steps
+    # )
+    lr_scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=int(steps * warmup_ratio),
+        num_training_steps=steps,
+        num_cycles=20,
+    )
+
     # set up the trainer
     trainer = Trainer(
         model=model,
@@ -97,6 +111,7 @@ def cli(
         eval_dataset=val_data,
         tokenizer=processor,
         data_collator=default_data_collator,
+        optimizers=(optimizer, lr_scheduler),
     )
 
     # train the model
