@@ -89,7 +89,7 @@ def cli(
         # # log output
         # print(f"outputs: {outputs}")
 
-        print(f"model outputs: {outputs.keys()}")
+        print(f"model outputs: {outputs.keys()}, loss: {outputs.loss}")
         # print('decoded input_ids:', tokenizer.decode(input_ids[0], skip_special_tokens=False))
         # print('decoded labels:', decoder_tokenizer.decode(labels[0], skip_special_tokens=False))
 
@@ -122,11 +122,10 @@ def cli(
         #     bbox=bbox,
         #     pixel_values=pixel_values,
         #     do_sample=True,
-        #     top_p=0.9,
-        #     temperature=0.2,            
+        #     top_p=0.95,
+        #     temperature=0.1,
         # )
         # print(f"gen_output: {gen_output}")
-
         # predicted_answer = decoder_tokenizer.decode(gen_output[0], skip_special_tokens=True)
         # print(f"predicted answer: {predicted_answer}")
 

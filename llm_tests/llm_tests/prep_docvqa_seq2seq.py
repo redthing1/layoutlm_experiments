@@ -200,6 +200,7 @@ def encode_dataset(examples, max_length=512):
 
     answers = examples["answers"]
     decoder_labels = []
+    decoder_attention_masks = []
 
     global decoder_tokenizer
     def decoder_tokenize(data):
@@ -257,6 +258,7 @@ def encode_dataset(examples, max_length=512):
                 # store decoder result
                 decoder_encoding = decoder_tokenize(answer)
                 decoder_labels.append(decoder_encoding.input_ids)
+                decoder_attention_masks.append(decoder_encoding.attention_mask)
 
                 # detokenize to make sure
                 decoder_answer = decoder_tokenizer.decode(decoder_encoding.input_ids, skip_special_tokens=True)
@@ -271,6 +273,7 @@ def encode_dataset(examples, max_length=512):
 
         decoder_encoding = decoder_tokenize('')
         decoder_labels.append(decoder_encoding.input_ids)
+        decoder_attention_masks.append(decoder_encoding.attention_mask)
 
         # # detokenize to make sure
         # decoder_answer = decoder_tokenizer.decode(decoder_encoding.input_ids, skip_special_tokens=False)
@@ -284,7 +287,24 @@ def encode_dataset(examples, max_length=512):
     # assert len(end_positions) == len(questions), f"end_positions and questions are different lengths: {len(end_positions)} vs {len(questions)}"
 
     encoding["pixel_values"] = examples["pixel_values"]
-    encoding["labels"] = decoder_labels
+    # decoder_labels[decoder_labels[:, :] == decoder_tokenizer.pad_token_id] = -100
+    
+    # print('eos: ', tokenizer.eos_token_id, 'pad: ', tokenizer.pad_token_id)
+    # print('decoder_labels:', decoder_labels)
+    # print('attention_mask:', encoding.attention_mask)
+    # print('decoder_attention_masks:', decoder_attention_masks)
+    
+    # replace decoder pad tokens with -100 to ignore them when calculating loss
+    exc_labels = [
+        [-100 if mask == 0 else token for mask, token in mask_and_tokens]
+        for mask_and_tokens in [
+            zip(masks, labels)
+            for masks, labels in zip(decoder_attention_masks, decoder_labels)
+        ]
+    ]
+    # print('exc_labels:', exc_labels)
+    # encoding["labels"] = [decoder_ids]
+    encoding["labels"] = exc_labels
     
 
     # store acceptable answers

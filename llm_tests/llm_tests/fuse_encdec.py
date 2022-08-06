@@ -66,6 +66,7 @@ def cli(
     # seq2seq_model.config.pad_token_id = decoder_tokenizer.cls_token_id
 
     seq2seq_model.config.decoder_start_token_id = decoder_tokenizer.cls_token_id
+    # seq2seq_model.config.pad_token_id = decoder_tokenizer.pad_token_id
     seq2seq_model.config.pad_token_id = decoder_tokenizer.pad_token_id
     seq2seq_model.config.vocab_size = decoder_tokenizer.vocab_size
 
