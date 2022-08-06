@@ -78,56 +78,56 @@ def cli(
         labels = batch["labels"].to(device)
         acceptable_answers = val_data[idx]["acceptable_answers"]
 
-        outputs = model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            bbox=bbox,
-            pixel_values=pixel_values,
-            labels=labels,
-        )
-
-        # # log output
-        # print(f"outputs: {outputs}")
-
-        print(f"model outputs: {outputs.keys()}, loss: {outputs.loss}")
-        # print('decoded input_ids:', tokenizer.decode(input_ids[0], skip_special_tokens=False))
-        # print('decoded labels:', decoder_tokenizer.decode(labels[0], skip_special_tokens=False))
-
-        # stack output logits into a single tensor
-        logits = outputs.logits[0]
-        # logits = outputs.logits.softmax(-1)
-        print(f'output logits: {logits.shape} {logits}')
-
-        predicted_answer = ''
-
-        for m in range(logits.shape[0]):
-            wi_softmax = logits[m].softmax(-1)
-            print(f"wi softmax: {wi_softmax.shape} {wi_softmax}")
-            # # get top-k predictions
-            # top_k = wi_softmax.topk(k=10)
-            # print(f"top_k: {top_k.indices} {top_k.values}")
-            top_token_id = wi_softmax.argmax()
-            top_token = decoder_tokenizer.decode([top_token_id])
-            print(f"top_token: ({top_token_id}) {top_token}")
-
-            predicted_answer += top_token
-
-            if top_token_id in [decoder_tokenizer.pad_token_id]:
-                # input('pause')
-                break
-
-        # gen_output = model.generate(
+        # outputs = model(
         #     input_ids=input_ids,
         #     attention_mask=attention_mask,
         #     bbox=bbox,
         #     pixel_values=pixel_values,
-        #     do_sample=True,
-        #     top_p=0.95,
-        #     temperature=0.1,
+        #     labels=labels,
         # )
-        # print(f"gen_output: {gen_output}")
-        # predicted_answer = decoder_tokenizer.decode(gen_output[0], skip_special_tokens=True)
-        # print(f"predicted answer: {predicted_answer}")
+
+        # # # log output
+        # # print(f"outputs: {outputs}")
+
+        # print(f"model outputs: {outputs.keys()}, loss: {outputs.loss}")
+        # # print('decoded input_ids:', tokenizer.decode(input_ids[0], skip_special_tokens=False))
+        # # print('decoded labels:', decoder_tokenizer.decode(labels[0], skip_special_tokens=False))
+
+        # # stack output logits into a single tensor
+        # logits = outputs.logits[0]
+        # # logits = outputs.logits.softmax(-1)
+        # print(f'output logits: {logits.shape} {logits}')
+
+        # predicted_answer = ''
+
+        # for m in range(logits.shape[0]):
+        #     wi_softmax = logits[m].softmax(-1)
+        #     print(f"wi softmax: {wi_softmax.shape} {wi_softmax}")
+        #     # # get top-k predictions
+        #     # top_k = wi_softmax.topk(k=10)
+        #     # print(f"top_k: {top_k.indices} {top_k.values}")
+        #     top_token_id = wi_softmax.argmax()
+        #     top_token = decoder_tokenizer.decode([top_token_id])
+        #     print(f"top_token: ({top_token_id}) {top_token}")
+
+        #     predicted_answer += top_token
+
+        #     if top_token_id in [decoder_tokenizer.pad_token_id]:
+        #         # input('pause')
+        #         break
+
+        gen_output = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            bbox=bbox,
+            pixel_values=pixel_values,
+            do_sample=True,
+            top_p=0.95,
+            temperature=0.1,
+        )
+        print(f"gen_output: {gen_output}")
+        predicted_answer = decoder_tokenizer.decode(gen_output[0], skip_special_tokens=True)
+        print(f"predicted answer: {predicted_answer}")
 
         # pretty print prediction info
         print(f'expected: {acceptable_answers}')
