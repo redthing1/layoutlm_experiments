@@ -512,7 +512,13 @@ class LayoutLMv3Seq2SeqModel(PreTrainedModel):
             self.encoder.config.hidden_size != self.decoder.config.hidden_size
             and self.decoder.config.cross_attention_hidden_size is None
         ):
-            encoder_hidden_states = self.enc_to_dec_proj(encoder_hidden_states)
+            transformed_encoder_hidden_states = self.enc_to_dec_proj(encoder_hidden_states)
+
+            # print(f'projected encoder hidden states: from {encoder_hidden_states.shape} -> {transformed_encoder_hidden_states.shape}'
+            #     + f'(because encoder.config.hidden_size = {self.encoder.config.hidden_size} and decoder.config.hidden_size = {self.decoder.config.hidden_size})')
+        else:
+            # pass encoder_hidden_states without transformation
+            transformed_encoder_hidden_states = encoder_hidden_states
 
         if (labels is not None) and (decoder_input_ids is None and decoder_inputs_embeds is None):
             decoder_input_ids = shift_tokens_right(
@@ -521,23 +527,28 @@ class LayoutLMv3Seq2SeqModel(PreTrainedModel):
 
         # Decode
 
-        if encoder_hidden_states.shape[1] - attention_mask.shape[1] > 0:
-            # encoder hidden state size is bigger than attention mask size, so we need to pad our attention mask before passing it to the decoder
-            resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=0)
+        # if transformed_encoder_hidden_states.shape[1] - attention_mask.shape[1] > 0:
+        #     # encoder hidden state size is bigger than attention mask size, so we need to pad our attention mask before passing it to the decoder
+        #     resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, transformed_encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=0)
             
-            # print(f'encoder hidden states: {encoder_hidden_states.shape} {encoder_hidden_states}')
-            # print(f'encoder attention mask: {attention_mask.shape} {attention_mask}')
-            # print(f'resized encoder attention mask to send to decoder: {attention_mask.shape} -> {resized_encoder_attention_mask.shape}')
-        else:
-            # just pass the attention mask as is to the decoder
-            resized_encoder_attention_mask = attention_mask
+        #     # print(f'encoder hidden states: {transformed_encoder_hidden_states.shape} {transformed_encoder_hidden_states}')
+        #     # print(f'encoder attention mask: {attention_mask.shape} {attention_mask}')
+        #     # print(f'resized encoder attention mask to send to decoder: {attention_mask.shape} -> {resized_encoder_attention_mask.shape}')
+        # else:
+        #     # just pass the attention mask as is to the decoder
+        #     resized_encoder_attention_mask = attention_mask
+
+        # we expect the hidden states to be wider than the attention mask, because it includes image patch embeddings
+        # we should concatenate the attention mask with ones to match the hidden states
+        image_patch_pad_size = transformed_encoder_hidden_states.shape[1] - attention_mask.shape[1]
+        resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, image_patch_pad_size), value=1)
         
         decoder_outputs = self.decoder(
             input_ids=decoder_input_ids,
             attention_mask=decoder_attention_mask,
             # token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
             # token_type_ids=torch.zeros(decoder_input_ids.shape, dtype=torch.long, device=decoder_input_ids.device),
-            encoder_hidden_states=encoder_hidden_states,
+            encoder_hidden_states=transformed_encoder_hidden_states,
             encoder_attention_mask=resized_encoder_attention_mask,
             inputs_embeds=decoder_inputs_embeds,
             output_attentions=output_attentions,
