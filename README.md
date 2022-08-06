@@ -73,6 +73,8 @@ poetry run budget_metrics train_output_try11_msread_segs/checkpoint-5000/ ~/Down
 
 LayoutLMv3 encoder with BART decoder
 
+stack a pretrained decoder onto a pretrained layoutlmv3 and finetune together for seq2seq, following [Leveraging Pre-trained Checkpoints for Sequence Generation Tasks](https://arxiv.org/abs/1907.12461)
+
 1. fuse together layoutlmv3 encoder with bart decoder
 
 ```sh
