@@ -524,9 +524,9 @@ class LayoutLMv3Seq2SeqModel(PreTrainedModel):
         # print(f'HACKED: encoder_hidden_states: {encoder_hidden_states.shape} {encoder_hidden_states}')
         # expand attention_mask from [4, 512] to [4, 709]
         # get the 709 from encoder_hidden_states.shape[1]
-        # resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=0)
+        resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=0)
         # resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, encoder_hidden_states.shape[1] - attention_mask.shape[1]), value=1)
-        resized_encoder_attention_mask = torch.ones(attention_mask.shape[0], encoder_hidden_states.shape[1])
+        # resized_encoder_attention_mask = torch.ones(attention_mask.shape[0], encoder_hidden_states.shape[1])
         # print(f'HACKED: resized_encoder_attention_mask: {resized_encoder_attention_mask.shape} {resized_encoder_attention_mask.numpy().tolist()}')
         
         decoder_outputs = self.decoder(
