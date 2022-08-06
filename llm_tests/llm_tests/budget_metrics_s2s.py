@@ -38,7 +38,7 @@ def cli(
     # load the model
     print(f"loading model: {model_path}")
     model = LayoutLMv3Seq2SeqModel.from_pretrained(model_path, ignore_mismatched_sizes=True).to(device)
-    # tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
     # processor = AutoProcessor.from_pretrained(model_path, apply_ocr=False)
     print(f"model loaded: {model_path}")
 
@@ -93,6 +93,9 @@ def cli(
         # # predicted_answer = decoder_tokenizer.decode(outputs, skip_special_tokens=True)
         # # print(f"predicted answer: {predicted_answer}")
         # assert False, "bean and cheese"
+
+        # print('decoded input_ids:', tokenizer.decode(input_ids[0], skip_special_tokens=False))
+        # print('decoded labels:', decoder_tokenizer.decode(labels[0], skip_special_tokens=False))
 
         gen_output = model.generate(
             input_ids=input_ids,
