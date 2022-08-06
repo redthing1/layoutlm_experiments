@@ -99,6 +99,9 @@ def cli(
             attention_mask=attention_mask,
             bbox=bbox,
             pixel_values=pixel_values,
+            do_sample=True,
+            top_p=0.9,
+            temperature=0.2,            
         )
         print(f"gen_output: {gen_output}")
 
