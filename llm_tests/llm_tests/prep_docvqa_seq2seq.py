@@ -305,6 +305,7 @@ def encode_dataset(examples, max_length=512):
     # print('exc_labels:', exc_labels)
     # encoding["labels"] = [decoder_ids]
     encoding["labels"] = exc_labels
+    encoding["decoder_attention_mask"] = decoder_attention_masks
     
 
     # store acceptable answers
@@ -388,6 +389,7 @@ def cli(
             "attention_mask": Sequence(Value(dtype="int64")),
             "pixel_values": Array3D(dtype="float32", shape=(3, 224, 224)),
             "labels": Sequence(feature=Value(dtype="int64")),
+            "decoder_attention_mask": Sequence(Value(dtype="int64")),
 
             "acceptable_answers": Sequence(feature=Value(dtype='string', id=None)),
         }
