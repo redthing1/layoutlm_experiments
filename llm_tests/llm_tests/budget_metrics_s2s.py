@@ -171,7 +171,7 @@ def cli(
         
         total_normalized_levenshtein += best_similarity
         
-        print(' best similarity:', best_similarity)
+        print(f' best similarity: {best_similarity:.3f}')
 
         num_items += 1
 
