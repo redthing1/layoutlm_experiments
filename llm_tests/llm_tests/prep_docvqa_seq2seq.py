@@ -271,7 +271,7 @@ def encode_dataset(examples, max_length=512):
     if not found_acceptable_answer:
         print("answer not found in context")
 
-        decoder_encoding = decoder_tokenize('')
+        decoder_encoding = decoder_tokenize('answer not found in context')
         decoder_labels.append(decoder_encoding.input_ids)
         decoder_attention_masks.append(decoder_encoding.attention_mask)
 
