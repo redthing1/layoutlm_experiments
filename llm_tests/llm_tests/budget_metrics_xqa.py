@@ -19,11 +19,7 @@ from transformers import (
     LayoutLMv3FeatureExtractor,
 )
 from datasets import load_dataset, load_from_disk
-
-def normalized_levenshtein(s1, s2):
-    L = editdistance.eval(s1, s2)
-    norm_div = max(len(s1), len(s2))
-    return L / norm_div
+from llm_tests.budget_metrics_shared import normalized_levenshtein
 
 def cli(
     model_path: str,
@@ -57,7 +53,7 @@ def cli(
 
     dataloader = torch.utils.data.DataLoader(val_data_encoded, batch_size=1)
 
-    def check_preds(outputs, labels):
+    def preprocess_preds(outputs, labels):
         answer_start_scores = outputs.start_logits.cpu().detach()
         answer_end_scores = outputs.end_logits.cpu().detach()
 
@@ -159,7 +155,7 @@ def cli(
             acceptable_answers_ends=acceptable_answers_ends,
         )
 
-        pred_results = check_preds(outputs, labels)
+        pred_results = preprocess_preds(outputs, labels)
 
         # pretty print prediction info
         print(f'expected: {pred_results.acceptable_answers}')

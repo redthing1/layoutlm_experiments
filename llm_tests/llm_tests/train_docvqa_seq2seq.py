@@ -11,15 +11,18 @@ import numpy as np
 
 from datasets import Dataset, Features, Sequence, Value, Array2D, Array3D
 from datasets import load_dataset, load_from_disk
+from llm_tests.budget_metrics_s2s import compute_anls_metric
 from transformers import AutoProcessor, AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.data.data_collator import default_data_collator
 from transformers import TrainingArguments, Trainer, EvalPrediction
 from transformers import AdamW, get_linear_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup
 from datasets import load_metric
 from llm_tests.modeling_llm3dec import LayoutLMv3Seq2SeqModel
+from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
+
+from llm_tests.budget_metrics_shared import normalized_levenshtein
 
 from tqdm.auto import tqdm
-# from llm_tests.qa_trainer import QuestionAnsweringTrainer
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,7 @@ def cli(
     print(f"loading model: {model_path}")
     model = LayoutLMv3Seq2SeqModel.from_pretrained(model_path, ignore_mismatched_sizes=True)
     processor = AutoProcessor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=True)
+    decoder_tokenizer = AutoTokenizer.from_pretrained(model.config.decoder._name_or_path)
     print(f"model loaded: {model_path}")
 
     # load the data
@@ -73,7 +77,8 @@ def cli(
         n_devices = torch.cuda.device_count()
         print(f"using {n_devices} gpu")
 
-    training_args = TrainingArguments(
+    steps_per_epoch = len(train_data) // batch
+    training_args = Seq2SeqTrainingArguments(
         output_dir=f"./train_output_{run_name}",
         overwrite_output_dir=True,
         max_steps=steps,
@@ -81,12 +86,16 @@ def cli(
         # warmup_steps=int(steps * warmup_ratio),
         # warmup_ratio=warmup_ratio,
         save_steps=save_every,
-        evaluation_strategy = "epoch",
+        # evaluation_strategy = "epoch",
+        evaluation_strategy="steps",
+        eval_steps=steps_per_epoch // 2,
         per_device_train_batch_size=inst_batch // n_devices,
         per_device_eval_batch_size=inst_batch // n_devices,
         gradient_accumulation_steps=batch // inst_batch,
         run_name=run_name,
         report_to = "wandb" if log_wandb else None,
+        predict_with_generate = True,
+        logging_steps = steps_per_epoch // 10 + 1,
     )
     print('training_args:', training_args)
 
@@ -103,8 +112,39 @@ def cli(
         num_cycles=20,
     )
 
+    def compute_metrics(eval_pred):
+        predictions, labels = eval_pred
+
+        # print(f"predictions: {predictions}")
+        # print(f"labels: {labels}")
+
+        # print("num preds:" , len(predictions))
+        # print("num preds[0]:", len(predictions[0]))
+        # print("what's in preds:", predictions)
+        # print("num preds[0][0]:", len(predictions[0][0]))
+
+        # print("num labels:", len(labels))
+        # print("num labels[0]:", len(labels[0]))
+
+        # decode the predictions
+        decoded_preds = decoder_tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        # replace label -100 with padding token
+        labels = np.where(labels != -100, labels, decoder_tokenizer.pad_token_id)
+        # decode the labels
+        decoded_labels = decoder_tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+        # map decoded labels to acceptable_answers
+        acceptable_answers_list = [[x] for x in decoded_labels]
+
+        # compute the metrics
+        result = compute_anls_metric(decoded_preds, acceptable_answers_list)
+
+        # print(f"anls result: {result}")
+
+        return result
+
     # set up the trainer
-    trainer = Trainer(
+    trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_data,
@@ -112,7 +152,12 @@ def cli(
         tokenizer=processor,
         data_collator=default_data_collator,
         optimizers=(optimizer, lr_scheduler),
+        # compute_metrics=compute_metrics,
     )
+
+    # evaluate the model
+    # trainer.evaluate(gen_kwargs={"do_sample": True, "top_p": 0.9, "temperature": 0.2},)
+    # trainer.evaluate()
 
     # train the model
     print('starting training')
