@@ -108,7 +108,9 @@ def cli(
                 pixel_values=encoding.pixel_values,
 
                 do_sample=True,
-                top_p=0.95,
+                # top_p=0.95,
+                # temperature=0.1,
+                top_p=0.9,
                 temperature=0.1,
             )
 
