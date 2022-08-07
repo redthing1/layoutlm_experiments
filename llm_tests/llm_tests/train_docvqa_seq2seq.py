@@ -19,6 +19,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup, get_cosine_with
 from datasets import load_metric
 from llm_tests.modeling_llm3dec import LayoutLMv3Seq2SeqModel
 from transformers import Seq2SeqTrainingArguments, Seq2SeqTrainer
+from llm_tests.s2s_trainer import LLMBartSeq2SeqTrainer
 
 from llm_tests.budget_metrics_shared import normalized_levenshtein
 
@@ -144,7 +145,7 @@ def cli(
         return result
 
     # set up the trainer
-    trainer = Seq2SeqTrainer(
+    trainer = LLMBartSeq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_data,
@@ -152,12 +153,12 @@ def cli(
         tokenizer=processor,
         data_collator=default_data_collator,
         optimizers=(optimizer, lr_scheduler),
-        # compute_metrics=compute_metrics,
+        compute_metrics=compute_metrics,
     )
 
     # evaluate the model
-    # trainer.evaluate(gen_kwargs={"do_sample": True, "top_p": 0.9, "temperature": 0.2},)
-    # trainer.evaluate()
+    trainer.set_generation_kwargs(do_sample=True, top_p=0.9, temperature=0.2)
+    trainer.evaluate()
 
     # train the model
     print('starting training')

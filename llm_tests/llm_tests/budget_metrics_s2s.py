@@ -32,8 +32,8 @@ def compute_anls_metric(predictions, answers):
         predicted_answer = pair[0]
         acceptable_answers = pair[1]
 
-        print(f'expected: {acceptable_answers}')
-        print(f' predicted: {predicted_answer}')
+        # print(f'expected: {acceptable_answers}')
+        # print(f' predicted: {predicted_answer}')
 
         if len(acceptable_answers) == 0 or len(acceptable_answers[0]) == 0:
             # no answer
