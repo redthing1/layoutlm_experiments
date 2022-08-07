@@ -155,10 +155,10 @@ def cli(
         optimizers=(optimizer, lr_scheduler),
         compute_metrics=compute_metrics,
     )
+    trainer.set_generation_kwargs(do_sample=True, top_p=0.9, temperature=0.2)
 
     # evaluate the model
-    trainer.set_generation_kwargs(do_sample=True, top_p=0.9, temperature=0.2)
-    trainer.evaluate()
+    # trainer.evaluate()
 
     # train the model
     print('starting training')
