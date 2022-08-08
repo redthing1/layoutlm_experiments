@@ -110,7 +110,7 @@ def cli(
         optimizer,
         num_warmup_steps=int(steps * warmup_ratio),
         num_training_steps=steps,
-        num_cycles=20,
+        num_cycles=10,
     )
 
     def compute_metrics(eval_pred):
