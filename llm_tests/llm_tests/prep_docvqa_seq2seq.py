@@ -240,7 +240,7 @@ def encode_dataset(examples, max_length=512):
             # ensure that some of the answer words contain the example words
             for answer_word in answer_words:
                 for word in words_example:
-                    if word in answer_word:
+                    if word in answer_word or answer_word in word:
                         match = True
                         break
 
