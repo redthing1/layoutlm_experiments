@@ -40,6 +40,8 @@ def cli(
     steps: Optional[int] = 100000,
     warmup_ratio: Optional[float] = 0.1,
     save_every: Optional[int] = 1000,
+    fp16: Optional[bool] = False,
+    gradient_checkpointing: Optional[bool] = False,
     log_wandb: Optional[bool] = False,
     project_id: Optional[str] = '"llm3-docvqa',
 ):
@@ -99,6 +101,12 @@ def cli(
         logging_steps = steps_per_epoch // 10 + 1,
     )
     print('training_args:', training_args)
+
+    if fp16:
+        training_args.fp16 = True
+    
+    if gradient_checkpointing:
+        training_args.gradient_checkpointing = True
 
     optimizer = AdamW(model.parameters(), lr=lr)
     # lr_scheduler = get_linear_schedule_with_warmup(
