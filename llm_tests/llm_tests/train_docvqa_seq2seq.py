@@ -42,6 +42,7 @@ def cli(
     save_every: Optional[int] = 1000,
     fp16: Optional[bool] = False,
     gradient_checkpointing: Optional[bool] = False,
+    optimizer: Optional[str] = 'adamw_hf',
     log_wandb: Optional[bool] = False,
     project_id: Optional[str] = '"llm3-docvqa',
 ):
@@ -95,6 +96,7 @@ def cli(
         per_device_train_batch_size=inst_batch // n_devices,
         per_device_eval_batch_size=inst_batch // n_devices,
         gradient_accumulation_steps=batch // inst_batch,
+        optim=optimizer,
         run_name=run_name,
         report_to = "wandb" if log_wandb else None,
         predict_with_generate = True,
