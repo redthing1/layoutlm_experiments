@@ -542,6 +542,8 @@ class LayoutLMv3Seq2SeqModel(PreTrainedModel):
         # we should concatenate the attention mask with ones to match the hidden states
         image_patch_pad_size = transformed_encoder_hidden_states.shape[1] - attention_mask.shape[1]
         resized_encoder_attention_mask = F.pad(input=attention_mask, pad=(0, image_patch_pad_size), value=1)
+        # print(f'encoder hidden states shape: {transformed_encoder_hidden_states.shape}')
+        # print(f'resized encoder attention mask: {attention_mask.shape} -> {resized_encoder_attention_mask.shape}')
         
         decoder_outputs = self.decoder(
             input_ids=decoder_input_ids,
